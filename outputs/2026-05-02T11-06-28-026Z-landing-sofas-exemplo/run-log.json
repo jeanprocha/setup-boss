@@ -1,0 +1,204 @@
+{
+  "run_id": "2026-05-02T11-06-28-026Z-landing-sofas-exemplo",
+  "project": "../landing-sofas",
+  "task": "tasks/exemplo.md",
+  "status": "failed",
+  "started_at": "2026-05-02T11:06:28.027Z",
+  "finished_at": "2026-05-02T11:17:45.374Z",
+  "steps": [
+    {
+      "name": "architect",
+      "status": "success",
+      "started_at": "2026-05-02T11:06:28.028Z",
+      "finished_at": "2026-05-02T11:06:51.371Z",
+      "duration_ms": 23343,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {
+        "scan_cache_enabled": true,
+        "scan_cache_used": true
+      }
+    },
+    {
+      "name": "architect_validation",
+      "status": "success",
+      "started_at": "2026-05-02T11:06:51.371Z",
+      "finished_at": "2026-05-02T11:06:51.421Z",
+      "duration_ms": 50,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "cursor_prompt",
+      "status": "success",
+      "started_at": "2026-05-02T11:06:51.421Z",
+      "finished_at": "2026-05-02T11:06:51.472Z",
+      "duration_ms": 51,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "cursor_enforcement",
+      "status": "success",
+      "started_at": "2026-05-02T11:11:29.771Z",
+      "finished_at": "2026-05-02T11:11:29.818Z",
+      "duration_ms": 47,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "review",
+      "status": "success",
+      "started_at": "2026-05-02T11:11:29.819Z",
+      "finished_at": "2026-05-02T11:11:29.916Z",
+      "duration_ms": 97,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "cursor_enforcement",
+      "status": "success",
+      "started_at": "2026-05-02T11:15:05.419Z",
+      "finished_at": "2026-05-02T11:15:05.470Z",
+      "duration_ms": 51,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "review",
+      "status": "success",
+      "started_at": "2026-05-02T11:15:05.471Z",
+      "finished_at": "2026-05-02T11:15:16.346Z",
+      "duration_ms": 10875,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "correction",
+      "status": "success",
+      "started_at": "2026-05-02T11:15:16.346Z",
+      "finished_at": "2026-05-02T11:15:27.158Z",
+      "duration_ms": 10812,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "cursor_enforcement",
+      "status": "success",
+      "started_at": "2026-05-02T11:17:36.621Z",
+      "finished_at": "2026-05-02T11:17:36.667Z",
+      "duration_ms": 45,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "review",
+      "status": "success",
+      "started_at": "2026-05-02T11:17:36.667Z",
+      "finished_at": "2026-05-02T11:17:45.373Z",
+      "duration_ms": 8706,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    }
+  ],
+  "correction_iterations": 3,
+  "generated_files": [
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/scan-output.md",
+      "type": "scan_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/architect-input.md",
+      "type": "architect_input"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/architect-output.md",
+      "type": "architect_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/task.md",
+      "type": "task"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/metadata.json",
+      "type": "metadata"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/architect-validation.json",
+      "type": "architect_validation"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/cursor-prompt.md",
+      "type": "cursor_prompt"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/cursor-allowed-files.json",
+      "type": "cursor_allowed_files"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/cursor-output.md",
+      "type": "cursor_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/cursor-validation.json",
+      "type": "cursor_validation"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/review-output.json",
+      "type": "review_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/review-output.md",
+      "type": "review_report"
+    },
+    {
+      "path": "outputs/2026-05-02T11-06-28-026Z-landing-sofas-exemplo/correction-prompt.md",
+      "type": "correction_prompt"
+    }
+  ],
+  "errors": [
+    {
+      "step": null,
+      "message": "review-output.json não foi gerado.",
+      "created_at": "2026-05-02T11:11:29.916Z"
+    },
+    {
+      "step": null,
+      "message": "MAX_CORRECTIONS excedido: 3/3",
+      "created_at": "2026-05-02T11:17:45.374Z"
+    }
+  ],
+  "warnings": [
+    {
+      "message": "Limite máximo de correções atingido.",
+      "meta": {
+        "correction_iterations": 3,
+        "max_corrections": 3
+      },
+      "created_at": "2026-05-02T11:17:45.374Z"
+    }
+  ],
+  "limits": {
+    "max_corrections": 3,
+    "max_total_steps": 20
+  },
+  "cost_latency": {
+    "total_duration_ms": 54077,
+    "estimated_total_tokens": 15000,
+    "estimated_cost_usd": 0.03
+  },
+  "cache": {
+    "scan_enabled": true,
+    "scan_used": true,
+    "scan_cache_path": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss\\.setup-boss\\cache\\scan-68bd0ff95445c9baebef132bdd886ade.md"
+  }
+}

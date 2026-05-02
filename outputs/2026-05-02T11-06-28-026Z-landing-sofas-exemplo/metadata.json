@@ -1,0 +1,59 @@
+{
+  "runId": "2026-05-02T11-06-28-026Z-landing-sofas-exemplo",
+  "projectName": "landing-sofas",
+  "projectRoot": "C:\\Users\\pierr\\Documents\\automacao\\landing-sofas",
+  "projectSetupDir": "C:\\Users\\pierr\\Documents\\automacao\\landing-sofas\\.setup-boss",
+  "taskPath": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss\\tasks\\exemplo.md",
+  "taskArg": "tasks/exemplo.md",
+  "projectArg": "../landing-sofas",
+  "createdAt": "2026-05-02T11:06:51.336Z",
+  "scan": {
+    "skipped": true,
+    "output_file": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss\\outputs\\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\\scan-output.md",
+    "project_scan_file": "C:\\Users\\pierr\\Documents\\automacao\\landing-sofas\\.setup-boss\\project-scan.md"
+  },
+  "source_of_truth": {
+    "hierarchy": {
+      "setup-boss/context": "verdade global do sistema",
+      "setup-boss/docs": "documentação operacional",
+      "project/.setup-boss": "verdade local do projeto",
+      "outputs/<run-id>": "histórico da execução"
+    }
+  },
+  "enforcement": {
+    "architect": {
+      "status": "approved",
+      "violations": []
+    },
+    "cursor": {
+      "allowed_files": [
+        "index.html",
+        "css/styles.css",
+        "js/main.js"
+      ],
+      "rule": "Cursor deve alterar apenas arquivos declarados em ## Arquivos prováveis."
+    }
+  },
+  "agents": {
+    "architect": {
+      "name": "Architect",
+      "version": "1.3.0",
+      "updated": "2026-05-01"
+    },
+    "cursor": {
+      "name": "Cursor Template",
+      "version": "1.0.0",
+      "updated": "2026-05-02"
+    },
+    "reviewer": {
+      "name": "Reviewer",
+      "version": "1.3.0",
+      "updated": "2026-05-01"
+    },
+    "correction": {
+      "name": "Correction",
+      "version": "1.1.0",
+      "updated": "2026-05-01"
+    }
+  }
+}

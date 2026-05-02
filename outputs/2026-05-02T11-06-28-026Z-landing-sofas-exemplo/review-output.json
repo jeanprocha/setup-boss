@@ -1,0 +1,19 @@
+{
+  "status": "rejected",
+  "acceptance_level": "development",
+  "blocking_issues": [
+    "Não há diff ou evidência concreta das alterações realizadas no projeto alvo (`landing-sofas`).",
+    "Não foi fornecido código/trechos de `index.html` comprovando a presença de hero, benefícios, produtos e CTA WhatsApp.",
+    "Não há evidência de que os CTAs usem o padrão exigido (`data-wa-href` e `data-whatsapp`).",
+    "Não há evidência de que a integração com `js/main.js` foi preservada após as mudanças.",
+    "Não há evidência de que nenhum arquivo fora do escopo foi alterado."
+  ],
+  "warnings": [
+    "O Project Scan sugere que a landing pode já existir parcialmente, mas sem inspeção/diff isso não pode ser usado como base para aprovação.",
+    "Há menção a um prompt de correção e orientação operacional, porém isso não substitui evidência no código.",
+    "O scan cita risco potencial em `js/main.js`; mesmo que fora do escopo, sem evidência não é possível confirmar ausência de regressão."
+  ],
+  "requires_correction": true,
+  "summary": "Rejeitado por falta de evidência verificável no código. A task só pode ser aprovada em development se houver prova clara das mudanças no projeto alvo, incluindo estrutura da página, padrão de WhatsApp compatível com `js/main.js` e confirmação de escopo limitado.",
+  "markdown_report": "## Review Result: REJECTED\n\nNão há evidência suficiente no material enviado para validar a implementação.\n\n### Critérios sem comprovação\n- Estrutura da página contendo:\n  - hero\n  - benefícios\n  - produtos\n  - CTA WhatsApp\n- CTA WhatsApp usando o padrão do projeto:\n  - `data-wa-href`\n  - `data-whatsapp`\n- Integração com `js/main.js` preservada\n- Nenhum arquivo fora do escopo alterado\n\n### O que falta para aprovação\nEnvie evidência objetiva do código, por exemplo:\n- diff dos arquivos alterados\n- conteúdo final de `index.html`\n- trechos relevantes dos CTAs com `data-wa-href`\n- confirmação do `data-whatsapp` no `<body>`\n- lista de arquivos modificados\n\n### Decisão\nSem evidência clara no código, conforme a regra do reviewer, a task deve ser **REJECTED**."
+}

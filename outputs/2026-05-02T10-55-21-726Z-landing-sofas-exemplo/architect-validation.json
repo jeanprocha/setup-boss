@@ -1,0 +1,7 @@
+{
+  "status": "blocked",
+  "violations": [
+    "Possível violação arquitetural detectada (nova arquitetura): \"- A estrutura atual exigir criação de nova arquitetura, novas dependências ou reorganização ampla de arquivos.\""
+  ],
+  "checked_at": "2026-05-02T10:56:01.440Z"
+}

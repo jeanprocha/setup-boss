@@ -1,0 +1,9 @@
+{
+  "status": "blocked",
+  "violations": [
+    "Possível violação arquitetural detectada (reestruturação): \"- ou apenas completar/reestruturar o conteúdo existente\"",
+    "Architect output precisa conter seção: ## Arquivos prováveis",
+    "Architect output precisa conter seção: ## Critério de parada"
+  ],
+  "checked_at": "2026-05-02T10:20:38.290Z"
+}

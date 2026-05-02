@@ -1,0 +1,92 @@
+{
+  "run_id": "2026-05-02T11-03-15-743Z-landing-sofas-exemplo",
+  "project": "../landing-sofas",
+  "task": "tasks/exemplo.md",
+  "status": "failed",
+  "started_at": "2026-05-02T11:03:15.744Z",
+  "finished_at": "2026-05-02T11:03:59.093Z",
+  "steps": [
+    {
+      "name": "architect",
+      "status": "success",
+      "started_at": "2026-05-02T11:03:15.745Z",
+      "finished_at": "2026-05-02T11:03:58.970Z",
+      "duration_ms": 43225,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {
+        "scan_cache_enabled": true,
+        "scan_cache_used": false
+      }
+    },
+    {
+      "name": "architect_validation",
+      "status": "success",
+      "started_at": "2026-05-02T11:03:58.971Z",
+      "finished_at": "2026-05-02T11:03:59.041Z",
+      "duration_ms": 70,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    },
+    {
+      "name": "cursor_prompt",
+      "status": "error",
+      "started_at": "2026-05-02T11:03:59.041Z",
+      "finished_at": "2026-05-02T11:03:59.093Z",
+      "duration_ms": 52,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {}
+    }
+  ],
+  "correction_iterations": 0,
+  "generated_files": [
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/scan-output.md",
+      "type": "scan_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/architect-input.md",
+      "type": "architect_input"
+    },
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/architect-output.md",
+      "type": "architect_output"
+    },
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/task.md",
+      "type": "task"
+    },
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/metadata.json",
+      "type": "metadata"
+    },
+    {
+      "path": "outputs/2026-05-02T11-03-15-743Z-landing-sofas-exemplo/architect-validation.json",
+      "type": "architect_validation"
+    }
+  ],
+  "errors": [
+    {
+      "step": "cursor_prompt",
+      "message": "Falha ao executar cursor.js",
+      "created_at": "2026-05-02T11:03:59.093Z"
+    }
+  ],
+  "warnings": [],
+  "limits": {
+    "max_corrections": 3,
+    "max_total_steps": 20
+  },
+  "cost_latency": {
+    "total_duration_ms": 43347,
+    "estimated_total_tokens": 4500,
+    "estimated_cost_usd": 0.009
+  },
+  "cache": {
+    "scan_enabled": true,
+    "scan_used": false,
+    "scan_cache_path": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss\\.setup-boss\\cache\\scan-68bd0ff95445c9baebef132bdd886ade.md"
+  }
+}

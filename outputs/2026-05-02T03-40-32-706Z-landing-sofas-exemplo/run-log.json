@@ -1,0 +1,47 @@
+{
+  "run_id": "2026-05-02T03-40-32-706Z-landing-sofas-exemplo",
+  "project": "../landing-sofas",
+  "task": "tasks/exemplo.md",
+  "status": "failed",
+  "started_at": "2026-05-02T03:40:32.708Z",
+  "finished_at": "2026-05-02T03:41:23.320Z",
+  "steps": [
+    {
+      "name": "architect",
+      "status": "error",
+      "started_at": "2026-05-02T03:40:32.708Z",
+      "finished_at": "2026-05-02T03:41:23.319Z",
+      "duration_ms": 50611,
+      "estimated_tokens": 1500,
+      "estimated_cost_usd": 0.003,
+      "meta": {
+        "scan_cache_enabled": true,
+        "scan_cache_used": false
+      }
+    }
+  ],
+  "correction_iterations": 0,
+  "generated_files": [],
+  "errors": [
+    {
+      "step": "architect",
+      "message": "Falha ao executar architect.js",
+      "created_at": "2026-05-02T03:41:23.319Z"
+    }
+  ],
+  "warnings": [],
+  "limits": {
+    "max_corrections": 3,
+    "max_total_steps": 20
+  },
+  "cost_latency": {
+    "total_duration_ms": 50611,
+    "estimated_total_tokens": 1500,
+    "estimated_cost_usd": 0.003
+  },
+  "cache": {
+    "scan_enabled": true,
+    "scan_used": false,
+    "scan_cache_path": null
+  }
+}

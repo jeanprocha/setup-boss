@@ -1,0 +1,20 @@
+# Dependências
+node_modules/
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Logs e runtime
+logs/
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cursor / IDE (opcional; descomente se não quiser versionar cache local)
+# .cursor/

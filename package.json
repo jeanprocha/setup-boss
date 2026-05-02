@@ -1,0 +1,17 @@
+{
+  "name": "setup-boss",
+  "version": "1.0.0",
+  "scripts": {
+    "architect": "node scripts/architect.js",
+    "cursor": "node scripts/cursor.js",
+    "review": "node scripts/review.js",
+    "knowledge": "node scripts/knowledge.js",
+    "run": "node scripts/run.js",
+    "scan": "node scripts/scan.js",
+    "correction": "node scripts/correction.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "openai": "^6.10.0"
+  }
+}

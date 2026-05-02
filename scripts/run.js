@@ -1,10 +1,56 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 const RunLogger = require("./logger");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+
+  const seconds = Math.round(ms / 1000);
+
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+
+  return `${minutes}m ${rest}s`;
+}
+
+function logStepStart(name, action, description) {
+  console.log(`\n▶ ${name} → ${action}`);
+
+  if (description) {
+    console.log(`   ${description}`);
+  }
+
+  return Date.now();
+}
+
+function logStepEnd(name, startedAt) {
+  const duration = Date.now() - startedAt;
+  console.log(`⏱ ${name} finalizado em ${formatDuration(duration)}`);
+}
+
+function summarizeReviewIssues(review) {
+  const issues = [];
+
+  if (Array.isArray(review.blocking_issues)) {
+    issues.push(...review.blocking_issues);
+  }
+
+  if (Array.isArray(review.warnings)) {
+    issues.push(...review.warnings);
+  }
+
+  if (issues.length === 0) {
+    return review.summary || "Review solicitou correção sem detalhes.";
+  }
+
+  return issues[0];
+}
 
 const SOURCE_OF_TRUTH = {
   globalContextDir: path.join(ROOT_DIR, "context"),
@@ -33,12 +79,6 @@ console.log("[RUN] OUTPUTS_DIR:", OUTPUTS_DIR);
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-function ensureFile(filePath, label) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`${label} não encontrado: ${filePath}`);
   }
 }
 
@@ -78,46 +118,57 @@ function getScanCachePath(projectArg) {
 }
 
 function runNode(script, scriptArgs = [], options = {}) {
-  console.log(`[RUN_NODE] start: ${script}`);
-  console.log("[RUN_NODE] args:", scriptArgs);
-  console.log("[RUN_NODE] command:", process.execPath);
+  return new Promise((resolve, reject) => {
+    console.log(`\n▶ Executando: ${script}`);
 
-  const spawnOptions = {
-    cwd: ROOT_DIR,
-    encoding: "utf-8",
-    shell: false,
-    windowsHide: true,
-  };
+    const scriptPath = path.join(ROOT_DIR, "scripts", script);
 
-  console.log("[RUN_NODE] shell:", spawnOptions.shell);
+    const child = spawn(process.execPath, [scriptPath, ...scriptArgs], {
+      cwd: ROOT_DIR,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
 
-  const result = spawnSync(
-    process.execPath,
-    [path.join(ROOT_DIR, "scripts", script), ...scriptArgs],
-    spawnOptions
-  );
+    let stdoutBuf = "";
+    let stderrBuf = "";
 
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
+    child.stdout.on("data", (data) => {
+      process.stdout.write(data);
+      stdoutBuf += data.toString();
+    });
 
-  console.log(`[RUN_NODE] end: ${script}`);
-  console.log("[RUN_NODE] status:", result.status);
-  console.log("[RUN_NODE] signal:", result.signal);
-  console.log("[RUN_NODE] error:", result.error?.message || null);
+    child.stderr.on("data", (data) => {
+      process.stderr.write(data);
+      stderrBuf += data.toString();
+    });
 
-  if (!options.allowFailure && result.status !== 0) {
-    throw new Error(`Falha ao executar ${script}`);
-  }
+    child.on("close", (code) => {
+      console.log(`✔ Finalizado: ${script}`);
+      console.log(`[status]:`, code);
 
-  return result;
+      if (!options.allowFailure && code !== 0) {
+        return reject(new Error(`Falha ao executar ${script}`));
+      }
+
+      resolve({
+        status: code,
+        stdout: stdoutBuf,
+        stderr: stderrBuf,
+      });
+    });
+
+    child.on("error", (err) => {
+      reject(err);
+    });
+  });
 }
 
 function extractOutputName(stdout) {
-  const match = stdout.match(/npm run cursor\s+([^\s]+)/);
+  const match = stdout.match(/npm run executor\s+([^\s]+)/);
 
   if (!match) {
     throw new Error(
-      "Não foi possível identificar o outputName. Verifique se architect.js imprime: npm run cursor <outputName>"
+      "Não foi possível identificar o outputName. Verifique se architect.js imprime: npm run executor <outputName>"
     );
   }
 
@@ -183,20 +234,6 @@ function assertFlowLimits(logger, outputDir) {
 
   if (!log) return;
 
-  const correctionIterations =
-    Number(log.correction_iterations ?? log.iterations ?? 0) || 0;
-
-  if (correctionIterations >= MAX_CORRECTIONS) {
-    logger.addWarning("Limite máximo de correções atingido.", {
-      correction_iterations: correctionIterations,
-      max_corrections: MAX_CORRECTIONS,
-    });
-
-    throw new Error(
-      `MAX_CORRECTIONS excedido: ${correctionIterations}/${MAX_CORRECTIONS}`
-    );
-  }
-
   const stepsCount = Array.isArray(log.steps) ? log.steps.length : 0;
 
   if (stepsCount >= MAX_TOTAL_STEPS) {
@@ -225,49 +262,81 @@ function addGeneratedFile(logger, outputName, relativeFilePath, type) {
   }
 }
 
-function createCursorOutputPlaceholder(outputName) {
-  const cursorOutputPath = path.join(
-    getOutputDir(outputName),
-    "cursor-output.md"
+async function runExecutorStep(logger, runId) {
+  assertFlowLimits(logger, getOutputDir(runId));
+
+  const startedAt = logStepStart(
+    "Executor",
+    "aplicando alterações",
+    "Lendo arquivos permitidos e aplicando mudanças no projeto."
   );
 
-  if (!fs.existsSync(cursorOutputPath)) {
-    fs.writeFileSync(
-      cursorOutputPath,
-      `# Cursor Output
+  logger.startStep("executor");
 
-Cole aqui a resposta completa do Cursor.
+  await runNode("executor.js", [runId]);
 
-Depois rode:
+  addGeneratedFile(logger, runId, "executor-input.md", "executor_input");
+  addGeneratedFile(logger, runId, "executor-result.json", "executor_result");
+  addGeneratedFile(logger, runId, "executor-output.md", "executor_output");
+  addGeneratedFile(logger, runId, "executor-changes.json", "executor_changes");
 
-npm run run continue ${outputName}
-`,
-      "utf-8"
-    );
-  }
+  logger.endStep("success");
+
+  logStepEnd("Executor", startedAt);
 }
 
-function assertCursorOutputFilled(outputName) {
-  const cursorOutputPath = path.join(
-    getOutputDir(outputName),
-    "cursor-output.md"
+async function runReviewStep(logger, runId) {
+  assertFlowLimits(logger, getOutputDir(runId));
+
+  const startedAt = logStepStart(
+    "Review",
+    "validando resultado",
+    "Conferindo se a execução atende aos critérios da task."
   );
 
-  ensureFile(cursorOutputPath, "cursor-output.md");
+  logger.startStep("review");
 
-  const content = fs.readFileSync(cursorOutputPath, "utf-8");
+  await runNode("review.js", [runId], { allowFailure: true });
 
-  if (
-    !content.trim() ||
-    content.includes("Cole aqui a resposta completa do Cursor")
-  ) {
-    throw new Error(
-      `cursor-output.md ainda está vazio ou com placeholder: ${cursorOutputPath}`
-    );
+  addGeneratedFile(logger, runId, "review-output.json", "review_output");
+  addGeneratedFile(logger, runId, "review-output.md", "review_report");
+
+  logger.endStep("success");
+
+  logStepEnd("Review", startedAt);
+
+  const reviewPath = path.join(getOutputDir(runId), "review-output.json");
+
+  if (!fs.existsSync(reviewPath)) {
+    throw new Error("review-output.json não foi gerado.");
   }
+
+  return readJson(reviewPath);
 }
 
-function startFlow(taskArg, projectArg) {
+async function finishKnowledge(logger, runId) {
+  const startedAt = logStepStart(
+    "Knowledge",
+    "registrando aprendizado",
+    "Salvando decisões úteis para próximas execuções."
+  );
+
+  logger.startStep("knowledge");
+
+  await runNode("knowledge.js", [runId]);
+
+  addGeneratedFile(logger, runId, "knowledge-update.md", "knowledge_update");
+
+  logger.endStep("success");
+
+  logStepEnd("Knowledge", startedAt);
+
+  logger.finish();
+
+  console.log("✅ Finalizado com sucesso");
+}
+
+async function startFlow(taskArg, projectArg) {
   if (!taskArg || !projectArg) {
     console.log("Uso:");
     console.log("npm run run tasks/exemplo.md ../landing-sofas");
@@ -314,9 +383,15 @@ function startFlow(taskArg, projectArg) {
     console.log("[RUN] canUseScanCache:", canUseScanCache);
     console.log("[RUN] architectArgs:", architectArgs);
 
-    console.log("Etapa 1 — Architect + Scan");
+    console.log("Etapa — Architect + Scan");
 
-    const architectResult = runNode("architect.js", architectArgs);
+    const architectStartedAt = logStepStart(
+      "Architect",
+      "gerando plano",
+      "Lendo task, scan do projeto e montando plano de execução."
+    );
+
+    const architectResult = await runNode("architect.js", architectArgs);
     const outputName = extractOutputName(architectResult.stdout || "");
 
     if (outputName !== runId) {
@@ -355,11 +430,7 @@ function startFlow(taskArg, projectArg) {
     addGeneratedFile(logger, runId, "task.md", "task");
     addGeneratedFile(logger, runId, "metadata.json", "metadata");
 
-    logger.endStep("success");
-
-    logger.startStep("architect_validation");
-
-    runNode("validate-architect.js", [runId]);
+    await runNode("validate-architect.js", [runId]);
 
     addGeneratedFile(
       logger,
@@ -368,33 +439,87 @@ function startFlow(taskArg, projectArg) {
       "architect_validation"
     );
 
-    logger.endStep("success");
-
-    logger.startStep("cursor_prompt");
-
-    runNode("cursor.js", [runId]);
-
-    addGeneratedFile(logger, runId, "cursor-prompt.md", "cursor_prompt");
-    addGeneratedFile(
-      logger,
-      runId,
-      "cursor-allowed-files.json",
-      "cursor_allowed_files"
-    );
-
-    createCursorOutputPlaceholder(runId);
-
-    addGeneratedFile(logger, runId, "cursor-output.md", "cursor_output");
+    logStepEnd("Architect", architectStartedAt);
 
     logger.endStep("success");
 
-    logger.finish();
+    await runExecutorStep(logger, runId);
 
-    console.log("\n⏸️ Pausa obrigatória");
-    console.log(
-      `Após executar no Cursor, salve o resultado em outputs/${runId}/cursor-output.md`
-    );
-    console.log(`npm run run continue ${runId}`);
+    for (;;) {
+      const review = await runReviewStep(logger, runId);
+
+      if (review.status === "approved") {
+        await finishKnowledge(logger, runId);
+        return;
+      }
+
+      if (review.status === "blocked") {
+        logger.addWarning("Review bloqueado.", {
+          review_status: review.status,
+          blocking_issues: review.blocking_issues || [],
+        });
+
+        logger.finish("partial");
+
+        console.log("⛔ Review bloqueado.");
+        console.log("Corrija a definição/estado da task antes de rodar de novo.");
+        return;
+      }
+
+      if (review.requires_correction === false) {
+        logger.addWarning("Review reprovou, mas não solicitou correção.", {
+          review_status: review.status,
+        });
+
+        throw new Error("REVIEW_FAILED_WITHOUT_CORRECTION_PATH");
+      }
+
+      if (logger.data.correction_iterations >= MAX_CORRECTIONS) {
+        logger.addWarning("Limite máximo de correções atingido.", {
+          correction_iterations: logger.data.correction_iterations,
+          max_corrections: MAX_CORRECTIONS,
+        });
+
+        logger.finish("partial");
+
+        console.log(
+          `⚠️ MAX_CORRECTIONS (${MAX_CORRECTIONS}) atingido sem aprovação.`
+        );
+        return;
+      }
+
+      const reason = summarizeReviewIssues(review);
+
+      console.log(
+        `\n🔁 Iteração de correção #${logger.data.correction_iterations + 1}`
+      );
+      console.log(`   Motivo: ${reason}`);
+
+      logger.incrementCorrectionIteration();
+
+      const correctionStartedAt = logStepStart(
+        "Correction",
+        "ajustando problemas",
+        "Gerando instruções objetivas para nova execução."
+      );
+
+      logger.startStep("correction");
+
+      await runNode("correction.js", [runId]);
+
+      addGeneratedFile(
+        logger,
+        runId,
+        "correction-instructions.md",
+        "correction_instructions"
+      );
+
+      logger.endStep("success");
+
+      logStepEnd("Correction", correctionStartedAt);
+
+      await runExecutorStep(logger, runId);
+    }
   } catch (error) {
     if (logger) {
       logger.failStep(error);
@@ -406,138 +531,11 @@ function startFlow(taskArg, projectArg) {
   }
 }
 
-function continueFlow(outputName) {
-  if (!outputName) {
-    console.log("Uso:");
-    console.log("npm run run continue <outputName>");
-    process.exit(1);
-  }
-
-  const outputDir = getOutputDir(outputName);
-
-  const logger = new RunLogger({
-    runId: outputName,
-    outputDir,
-    project: "",
-    task: "",
-  });
-
-  try {
-    assertOutputInsideOutputs(outputDir);
-    ensureFile(outputDir, "Pasta de output");
-    assertCursorOutputFilled(outputName);
-    assertFlowLimits(logger, outputDir);
-
-    logger.incrementCorrectionIteration();
-
-    logger.startStep("cursor_enforcement");
-
-    runNode("validate-cursor.js", [outputName]);
-
-    addGeneratedFile(
-      logger,
-      outputName,
-      "cursor-validation.json",
-      "cursor_validation"
-    );
-
-    logger.endStep("success");
-
-    logger.startStep("review");
-
-    runNode("review.js", [outputName], { allowFailure: true });
-
-    addGeneratedFile(logger, outputName, "review-output.json", "review_output");
-    addGeneratedFile(logger, outputName, "review-output.md", "review_report");
-
-    logger.endStep("success");
-
-    const reviewPath = path.join(outputDir, "review-output.json");
-
-    if (!fs.existsSync(reviewPath)) {
-      throw new Error("review-output.json não foi gerado.");
-    }
-
-    const review = readJson(reviewPath);
-
-    if (review.status === "approved") {
-      logger.startStep("knowledge");
-
-      runNode("knowledge.js", [outputName]);
-
-      addGeneratedFile(
-        logger,
-        outputName,
-        "knowledge-update.md",
-        "knowledge_update"
-      );
-
-      logger.endStep("success");
-      logger.finish();
-
-      console.log("✅ Finalizado com sucesso");
-      return;
-    }
-
-    if (review.status === "blocked") {
-      logger.addWarning("Review bloqueado.", {
-        review_status: review.status,
-        blocking_issues: review.blocking_issues || [],
-      });
-
-      logger.finish("partial");
-
-      console.log("⛔ Review bloqueado.");
-      console.log("Corrija a definição/estado da task antes de continuar.");
-      return;
-    }
-
-    if (review.requires_correction === false) {
-      logger.addWarning("Review reprovou, mas não solicitou correção.", {
-        review_status: review.status,
-      });
-
-      throw new Error("REVIEW_FAILED_WITHOUT_CORRECTION_PATH");
-    }
-
-    assertFlowLimits(logger, outputDir);
-
-    logger.startStep("correction");
-
-    runNode("correction.js", [outputName]);
-
-    addGeneratedFile(
-      logger,
-      outputName,
-      "correction-prompt.md",
-      "correction_prompt"
-    );
-
-    logger.endStep("success");
-    logger.finish("partial");
-
-    console.log("⚠️ Correção necessária");
-    console.log(`npm run cursor ${outputName}`);
-    console.log(
-      `Após executar no Cursor, salve o resultado em outputs/${outputName}/cursor-output.md`
-    );
-    console.log(`npm run run continue ${outputName}`);
-  } catch (error) {
-    logger.failStep(error);
-    logger.finish("failed");
-
-    console.error("❌ Erro:", error.message);
-    process.exit(1);
-  }
+async function main() {
+  await startFlow(args[0], args[1]);
 }
 
-function main() {
-  if (args[0] === "continue") {
-    continueFlow(args[1]);
-    return;
-  }
-
-  startFlow(args[0], args[1]);
-}
-
-main();
+main().catch((error) => {
+  console.error("❌ Erro:", error.message || error);
+  process.exit(1);
+});

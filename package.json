@@ -1,9 +1,9 @@
 {
   "name": "setup-boss",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scripts": {
     "architect": "node scripts/architect.js",
-    "cursor": "node scripts/cursor.js",
+    "executor": "node scripts/executor.js",
     "review": "node scripts/review.js",
     "knowledge": "node scripts/knowledge.js",
     "run": "node scripts/run.js",

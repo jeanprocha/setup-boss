@@ -118,6 +118,28 @@ function extractExpectedAcceptanceLevel(task) {
   return normalizeTaskAcceptanceLevel(match[2]);
 }
 
+function extractSection(content, sectionTitle) {
+  const escaped = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(
+    `## ${escaped}\\s*([\\s\\S]*?)(?=\\n## |$)`,
+    "i"
+  );
+
+  const match = content.match(regex);
+  return match ? match[1].trim() : "";
+}
+
+function extractArchitectAllowedFiles(architectOutput) {
+  const section = extractSection(architectOutput, "Arquivos prováveis");
+
+  return section
+    .split("\n")
+    .map((line) => line.replace(/^[-*]\s*/, "").trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith("#"))
+    .map((line) => line.replace(/`/g, "").trim());
+}
+
 function validateReviewResult(result, expectedLevel) {
   const errors = [];
 
@@ -194,7 +216,57 @@ async function run() {
   const task = readIfExists(path.join(outputDir, "task.md"));
   const scan = readIfExists(path.join(outputDir, "scan-output.md"));
   const architect = readIfExists(path.join(outputDir, "architect-output.md"));
-  const cursor = readIfExists(path.join(outputDir, "cursor-output.md"));
+  const executor = readIfExists(path.join(outputDir, "executor-output.md"));
+
+  const changesPath = path.join(outputDir, "executor-changes.json");
+
+  let changedFiles = [];
+
+  if (fs.existsSync(changesPath)) {
+    changedFiles = JSON.parse(fs.readFileSync(changesPath, "utf-8"));
+  }
+
+  const metadataPath = path.join(outputDir, "metadata.json");
+  const pipelineMetadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+
+  const projectRoot = pipelineMetadata.projectRoot;
+
+  const pathsFromChanges = Array.isArray(changedFiles)
+    ? [...new Set(changedFiles.map((f) => (f && f.path ? f.path : "")).filter(Boolean))]
+    : [];
+
+  const pathsForRealState =
+    pathsFromChanges.length > 0
+      ? pathsFromChanges
+      : [...new Set(extractArchitectAllowedFiles(architect))];
+
+  const MAX_SIZE = 20000;
+
+  const realFilesContent = pathsForRealState.map((relPath) => {
+    const absolutePath = path.join(projectRoot, relPath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return `### ${relPath}\n\n(Não encontrado)`;
+    }
+
+    const content = fs.readFileSync(absolutePath, "utf-8");
+
+    const safeContent =
+      content.length > MAX_SIZE ? content.slice(-MAX_SIZE) : content;
+
+    return `### ${relPath}
+
+\`\`\`
+${safeContent}
+\`\`\``;
+  });
+
+  const realStatePreamble =
+    pathsFromChanges.length > 0
+      ? ""
+      : pathsForRealState.length > 0
+        ? "_Arquivos lidos do disco conforme «Arquivos prováveis» do Architect (executor-changes.json estava vazio nesta execução)._\n\n"
+        : "_Nenhum caminho em executor-changes.json e nenhum arquivo em «Arquivos prováveis» do Architect — não há estado de disco para revisar._\n\n";
 
   const expectedLevel = extractExpectedAcceptanceLevel(task);
 
@@ -217,6 +289,12 @@ IMPORTANTE:
 - Se estiver correto para o nível → APPROVED
 
 Nunca aprove sem evidência clara no código.
+
+Use como fonte de verdade:
+1. REAL FILE STATE (prioridade máxima)
+2. Executor Output (evidência auxiliar)
+
+Se houver conflito, confie no REAL FILE STATE.
         `.trim()
       },
       {
@@ -231,8 +309,12 @@ ${scan}
 # ARCHITECT PLAN
 ${architect}
 
-# CURSOR OUTPUT
-${cursor}
+# EXECUTOR OUTPUT
+${executor}
+
+# REAL FILE STATE (SOURCE OF TRUTH)
+
+${realStatePreamble}${realFilesContent.join("\n\n")}
         `.trim()
       }
     ],

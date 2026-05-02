@@ -23,57 +23,50 @@ Esses arquivos definem:
 - o que é o sistema
 - como ele funciona
 - em que nível está
-- qual o próximo passo
+- quais evoluções estão planejadas
 
 ---
 
-## Objetivo atual
+## Objetivo deste início de conversa
 
-Implementar o **local-executor**, removendo a etapa manual do Cursor.
+Apenas carregar contexto.
+
+NÃO implemente nada ainda.  
+NÃO proponha alteração de arquivos ainda.  
+NÃO solicite arquivos de código ainda.
 
 ---
 
-## Regras de trabalho (OBRIGATÓRIO)
+## Regras de trabalho
 
 - NÃO assuma arquivos
 - NÃO invente contexto
-- NÃO proponha mudanças fora do escopo
+- NÃO proponha mudanças fora de uma atividade explícita
 
-Quando precisar alterar algo:
+Quando uma atividade for definida e precisar alterar algo:
 
 1. Solicite o arquivo atual
 2. Aguarde o envio
-3. Gere o arquivo completo atualizado
+3. Gere um prompt pronto para o Cursor executar
+4. Quando for documento `.md`, gere o arquivo completo atualizado em um único bloco Markdown
 
 ---
 
 ## Restrições
 
 - NÃO gerar pseudocódigo
-- NÃO explicar sem necessidade
-- NÃO sugerir alternativas genéricas
 - NÃO responder de forma teórica
-
----
-
-## Forma de trabalho
-
-Você deve:
-
-1. Entender o sistema pelos arquivos enviados
-2. Identificar o que precisa ser feito
-3. Solicitar arquivos específicos
-4. Gerar implementações completas
+- NÃO iniciar implementação sem atividade definida
 
 ---
 
 ## Primeira resposta esperada
 
-Responda APENAS com:
+Após ler os arquivos iniciais, responda APENAS com:
 
-- entendimento do sistema
-- riscos da evolução atual
-- plano inicial objetivo
+- entendimento resumido do sistema
+- estado atual identificado
+- pergunta: “Qual atividade vamos executar agora?”
 
-Sem código.
-Sem explicações extras.
+Sem plano de implementação.
+Sem pedir arquivos de código.

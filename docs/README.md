@@ -1,7 +1,7 @@
 # Setup Boss
 
-> Estado atual: Fase 2 — Semi-automação (Cursor manual)  
-> Próximo passo: Fase 3 — Local Executor
+> **v2.0.0** — Estado atual: Fase 3 — Executor local automático  
+> Próximo passo: Fase 4 — Executor híbrido e validação estrutural
 
 ---
 
@@ -13,25 +13,27 @@ Ele:
 
 - lê contexto e task
 - gera plano (architect)
-- executa (manual hoje)
-- valida com JSON
-- corrige automaticamente
-- registra knowledge
+- executa automaticamente no projeto (`executor`)
+- valida com base no estado real dos arquivos (`review`)
+- corrige automaticamente (`correction` + reexecução do `executor`)
+- registra knowledge persistente (`knowledge`)
 
 ---
 
 ## Pipeline
 
 ```text
-scan → architect → cursor → review → correction → knowledge
+scan → architect → executor → review → correction → executor → knowledge
 ```
+
+(Repetição de executor/review até aprovação ou limite do loop.)
 
 ---
 
 ## Ramificações
 
 - approved → knowledge → fim
-- rejected → correction → cursor → review
+- rejected → correction → executor → review
 - blocked → parar
 
 Fonte: `review-output.json`
@@ -40,7 +42,6 @@ Fonte: `review-output.json`
 
 ## Estrutura
 
-```
 setup-boss/
   agents/
   context/
@@ -48,7 +49,6 @@ setup-boss/
   docs/
   outputs/
   scripts/
-```
 
 ---
 
@@ -63,16 +63,30 @@ setup-boss/
 
 ---
 
-## Estado atual
+## Estado atual (Fase 3)
 
-Execução ainda manual:
+Execução totalmente automática no repositório alvo:
 
-- gerar prompt
-- rodar no Cursor
-- colar resultado em `cursor-output.md`
+- `executor` aplica alterações reais aos arquivos permitidos pelo architect
+- `review` usa o estado real dos arquivos no disco como fonte de verdade (`REAL FILE STATE`), complementado pelo `executor-output`
+- loop de correction operacional quando o review rejeita
+- knowledge persistido no projeto (e contexto global preservado)
 
 ---
 
-## Próxima evolução
+## Limitações atuais
 
-Implementar **local-executor** para automação completa.
+- edição estrutural global ainda limitada (principalmente texto/gestão de arquivos completos pelo LLM)
+- ausência de validação por build ou suíte de testes automatizada no pipeline
+- dependência do LLM para decisões finas de código e marcação
+
+---
+
+## Próxima evolução (Fase 4)
+
+Executor híbrido:
+
+- parsing estruturado (HTML / AST onde couber)
+- inserções e patches mais determinísticos onde possível
+- validação via build ou testes onde o projeto permitir
+

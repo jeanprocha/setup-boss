@@ -1,6 +1,6 @@
 # Dependências
 node_modules/
-
+outputs/
 # Ambiente e segredos
 .env
 .env.*

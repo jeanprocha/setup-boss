@@ -2,22 +2,11 @@
 
 ## Descrição
 
-Evoluir a landing page de sofás existente no projeto `landing-sofas`, garantindo uma página comercial completa para captação de leads via WhatsApp.
-
-A landing deve conter:
-
-- hero com proposta de valor clara
-- seção de benefícios
-- seção de produtos/modelos de sofás
-- CTA principal para WhatsApp
-- CTA final reforçando orçamento/atendimento
-- conteúdo placeholder aceitável para ambiente de desenvolvimento
+Adicionar um bloco de destaque de promoção no final da página.
 
 ---
 
 ## Acceptance Level (OBRIGATÓRIO)
-
-Escolha apenas um:
 
 - [x] development
 - [ ] staging
@@ -27,33 +16,29 @@ Escolha apenas um:
 
 ## Acceptance Criteria (OBRIGATÓRIO)
 
-- [ ] `index.html` contém hero, benefícios, produtos e CTA final
-- [ ] há pelo menos 3 produtos/modelos de sofás
-- [ ] todos os CTAs de WhatsApp usam o padrão existente do projeto:
+- [ ] `index.html` contém um novo bloco `<section id="promocao">`
+- [ ] a seção contém o texto: "Promoção especial de sofás"
+- [ ] a seção contém um botão de WhatsApp com:
   - `data-wa-href`
-  - `data-wa-msg`
-  - `data-wa-placement`
-- [ ] o `<body>` mantém `data-whatsapp`
-- [ ] `js/main.js` não é substituído por lógica paralela
-- [ ] `css/styles.css` mantém layout responsivo
-- [ ] nenhum arquivo fora do projeto `landing-sofas` é alterado
-- [ ] saída do Cursor informa arquivos alterados e validações feitas
+  - `data-wa-msg="Quero saber da promoção"`
+  - `data-wa-placement="promocao"`
+- [ ] a seção foi adicionada no FINAL do `<body>`
+- [ ] `js/main.js` NÃO foi alterado
+- [ ] `css/styles.css` NÃO foi removido
+- [ ] saída do Executor lista arquivos alterados
 
 ---
 
 ## Fora de escopo
 
-- configurar número real de WhatsApp
-- publicar em produção
-- adicionar backend
-- adicionar framework
+- alterar outras seções
+- alterar layout existente
 - adicionar dependências
-- alterar arquitetura do projeto
+- refatorar código
 
 ---
 
 ## Observações
 
-- Pode reutilizar a estrutura existente do `index.html`
-- Pode usar conteúdo e imagens mockadas
-- Placeholders são aceitos porque o nível é `development`
+- a seção deve ser nova (não reutilizar existente)
+- pode usar HTML simples

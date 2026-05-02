@@ -251,7 +251,7 @@ ${task}
   }
 
   console.log("✅ Architect concluído:", outputDirName);
-  console.log(`npm run cursor ${outputDirName}`);
+  console.log(`npm run executor ${outputDirName}`);
 }
 
 main().catch((error) => {

@@ -11,43 +11,6 @@ const client = new OpenAI({
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 
-const CORRECTION_EXECUTION_PREFIX = `## EXECUTION MODE (OBRIGATÓRIO)
-
-Execute esta task agora.
-
-NÃO explique o prompt.
-NÃO descreva o que deveria ser feito.
-NÃO responda em modo teórico.
-
-Você deve:
-
-1. aplicar a correção no projeto real
-2. validar o resultado
-3. retornar evidência objetiva
-`;
-
-/** Evita duplicar o bloco se o modelo repetir o mesmo preâmbulo. */
-function stripLeadingExecutionModeDuplicate(text) {
-  const t = String(text).trim();
-  if (!t.startsWith("## EXECUTION MODE (OBRIGATÓRIO)")) {
-    return t;
-  }
-
-  const separator = "\n---\n";
-  const sepIdx = t.indexOf(separator, 10);
-  if (sepIdx !== -1) {
-    return t.slice(sepIdx + separator.length).trim();
-  }
-
-  const endMarker = "3. retornar evidência objetiva";
-  const mIdx = t.indexOf(endMarker);
-  if (mIdx !== -1) {
-    return t.slice(mIdx + endMarker.length).replace(/^\s*[\r\n]+/, "").trim();
-  }
-
-  return t;
-}
-
 function ensureFile(file, label) {
   if (!fs.existsSync(file)) {
     console.log(`❌ ${label} não encontrado: ${file}`);
@@ -94,11 +57,7 @@ async function main() {
   const agentPath = path.join(ROOT_DIR, "agents", "correction.md");
   const { content: agent, metadata: agentMeta } = loadAgent(agentPath);
 
-  const prompt = `${CORRECTION_EXECUTION_PREFIX}
-
----
-
-${agent}
+  const prompt = `${agent}
 
 ## TASK
 ${task}
@@ -108,6 +67,11 @@ ${JSON.stringify(review, null, 2)}
 
 ## REVIEW EXPLANATION (HUMAN)
 ${reviewMd}
+
+---
+
+Gere o documento em Markdown seguindo o formato obrigatório do agente.
+As instruções serão lidas automaticamente pelo Executor na próxima rodada (sem intervenção humana).
 `;
 
   const response = await client.responses.create({
@@ -115,20 +79,11 @@ ${reviewMd}
     input: prompt,
   });
 
-  const generated = stripLeadingExecutionModeDuplicate(
-    response.output_text || ""
-  );
-
-  const correctionMarkdown = `${CORRECTION_EXECUTION_PREFIX.trim()}
-
----
-
-${generated}
-`;
+  const generated = String(response.output_text || "").trim();
 
   fs.writeFileSync(
-    path.join(outputDir, "correction-prompt.md"),
-    correctionMarkdown,
+    path.join(outputDir, "correction-instructions.md"),
+    generated,
     "utf-8"
   );
 
@@ -145,7 +100,7 @@ ${generated}
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
   }
 
-  console.log("✅ Correction gerado");
+  console.log("✅ correction-instructions.md gerado");
 }
 
 main().catch((err) => {

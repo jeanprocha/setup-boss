@@ -4,58 +4,11 @@ const path = require("path");
 const ROOT_DIR = path.resolve(__dirname, "..");
 
 const REQUIRED_SECTIONS = [
+  "## Entendimento",
+  "## Riscos",
   "## Arquivos prováveis",
   "## Plano",
   "## Critério de parada",
-];
-
-const BLOCKED_RULES = [
-  {
-    label: "reestruturação",
-    pattern:
-      /\b(?:nova|ampla)\s+reestruturação\b|\breestruturação\s+arquitetural\b|\breestrutur(ar|ação)\b(?!\s+(?:para\s+)?(?:o|a|os|as)?\s*(?:html|conte[uú]do|markdown|landing|jsx|tsx|seo|copy)\b)(?=[\s\S]{0,120}?\b(?:projeto|código|código.?base|codebase|aplica[cç][aã]o|sistema|arquitetura|pastas|diret[oó]rios|m[oó]dulos|mono.?repo|estrutura(?:\s+de\s+)?pastas)\b)/i,
-  },
-  {
-    label: "nova arquitetura",
-    pattern: /nova arquitetura/i,
-  },
-  {
-    label: "migração de stack",
-    pattern: /migrar para/i,
-  },
-  {
-    label: "troca de stack",
-    pattern: /trocar stack/i,
-  },
-  {
-    label: "nova dependência",
-    pattern: /adicionar depend[eê]ncia/i,
-  },
-  {
-    label: "instalação de pacote",
-    pattern: /instalar pacote/i,
-  },
-  {
-    label: "refatoração total",
-    pattern: /refatorar tudo/i,
-  },
-  {
-    label: "reescrita",
-    pattern: /reescrever/i,
-  },
-];
-
-const NEGATION_PATTERNS = [
-  /\bnão\b/i,
-  /\bnao\b/i,
-  /\bsem\b/i,
-  /\bevitar\b/i,
-  /\bnunca\b/i,
-  /\bproibido\b/i,
-  /\bnão deve\b/i,
-  /\bnão será\b/i,
-  /\bnão propor\b/i,
-  /\bnão criar\b/i,
 ];
 
 function read(file) {
@@ -69,105 +22,49 @@ function ensureFile(file, label) {
   }
 }
 
-const SECTIONS_EXCLUDED_FROM_BLOCKED_RULES = ["Riscos", "Critério de parada"];
-
-function escapeRegexFragment(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /**
- * Remove headings + body dessas seções só para aplicar BLOCKED_RULES —
- * descrevem risco/gatilho hipotético, não proposta efetiva.
+ * Extrai o corpo de uma seção ## Título até a próxima linha que começa com "## " (markdown H2).
+ * Sem regex pesada.
  */
-function markdownForBlockedRuleScan(markdown) {
-  let out = markdown;
-  for (const prefix of SECTIONS_EXCLUDED_FROM_BLOCKED_RULES) {
-    const esc = escapeRegexFragment(prefix);
-    const re = new RegExp(
-      `(^|\\r?\\n)##\\s*${esc}\\b[^\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`,
-      "gi"
-    );
-    out = out.replace(re, "$1");
-  }
-  return out;
-}
-
-function getLineContext(content, matchIndex) {
-  const before = content.lastIndexOf("\n", matchIndex);
-  const after = content.indexOf("\n", matchIndex);
-
-  const start = before === -1 ? 0 : before + 1;
-  const end = after === -1 ? content.length : after;
-
-  return content.slice(start, end).trim();
-}
-
-function isNegatedContext(line) {
-  return NEGATION_PATTERNS.some((pattern) => pattern.test(line));
-}
-
-/** Linhas que descrevem condição/risco (“se X então Y”), não adoção direta da proibição. */
-function isRiskOrConditionalLine(line) {
-  if (/^\s*-\s*(?:Se|Caso|Quando)\b/i.test(line)) return true;
-  if (/^\s*-\s*[Aa]\s+.+\bexigir\b/i.test(line)) return true;
-
-  const exigeCriacao =
-    /\bexigir\s+(?:a\s+)?(?:criação|implementação|introdução|adição)/i.test(
-      line
-    );
-
-  const listaHipotetica =
-    /\bou\b/i.test(line) ||
-    /\b(?:nova\s+arquitetura|novas?\s+dependências)\b/i.test(line);
-
-  if (exigeCriacao && listaHipotetica) {
-    return true;
+function extractSection(content, sectionTitle) {
+  const marker = `## ${sectionTitle}`;
+  const idx = content.indexOf(marker);
+  if (idx === -1) {
+    return "";
   }
 
-  return false;
-}
+  let bodyStart = content.indexOf("\n", idx);
+  if (bodyStart === -1) {
+    return "";
+  }
+  bodyStart += 1;
 
-function findBlockedMentions(content) {
-  const violations = [];
-
-  for (const rule of BLOCKED_RULES) {
-    const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
-
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const line = getLineContext(content, match.index);
-
-      if (isNegatedContext(line)) {
-        continue;
-      }
-
-      if (isRiskOrConditionalLine(line)) {
-        continue;
-      }
-
-      violations.push(
-        `Possível violação arquitetural detectada (${rule.label}): "${line}"`
-      );
-
-      if (!regex.global) break;
-    }
+  const nextIdx = content.indexOf("\n## ", bodyStart);
+  if (nextIdx === -1) {
+    return content.slice(bodyStart).trim();
   }
 
-  return violations;
+  return content.slice(bodyStart, nextIdx).trim();
 }
 
 function validateArchitectOutput(content) {
-  const violations = [];
+  console.log("[VALIDATE_ARCHITECT] start");
 
-  violations.push(
-    ...findBlockedMentions(markdownForBlockedRuleScan(content))
-  );
+  const violations = [];
 
   for (const section of REQUIRED_SECTIONS) {
     if (!content.includes(section)) {
-      violations.push(`Architect output precisa conter seção: ${section}`);
+      violations.push(`Seção obrigatória ausente: ${section}`);
     }
   }
+
+  const filesSection = extractSection(content, "Arquivos prováveis");
+
+  if (!filesSection.trim()) {
+    violations.push("Seção Arquivos prováveis está vazia.");
+  }
+
+  console.log("[VALIDATE_ARCHITECT] end");
 
   return violations;
 }

@@ -178,7 +178,7 @@ async function main() {
   const metadataPath = path.join(outputDir, "metadata.json");
   const taskPath = path.join(outputDir, "task.md");
   const architectPath = path.join(outputDir, "architect-output.md");
-  const cursorPath = path.join(outputDir, "cursor-output.md");
+  const executorPath = path.join(outputDir, "executor-output.md");
   const reviewMarkdownPath = path.join(outputDir, "review-output.md");
   const reviewJsonPath = path.join(outputDir, "review-output.json");
 
@@ -187,7 +187,7 @@ async function main() {
   ensureFile(metadataPath, "metadata.json");
   ensureFile(taskPath, "task.md");
   ensureFile(architectPath, "architect-output.md");
-  ensureFile(cursorPath, "cursor-output.md");
+  ensureFile(executorPath, "executor-output.md");
   ensureFile(knowledgeAgentPath, "agents/knowledge.md");
 
   if (!fs.existsSync(reviewMarkdownPath) && !fs.existsSync(reviewJsonPath)) {
@@ -271,8 +271,8 @@ ${read(taskPath)}
 ## PLANO / ARCHITECT OUTPUT
 ${read(architectPath)}
 
-## EXECUÇÃO / CURSOR OUTPUT
-${read(cursorPath)}
+## EXECUÇÃO / EXECUTOR OUTPUT
+${read(executorPath)}
 
 ## REVIEW OUTPUT
 ${reviewOutput}

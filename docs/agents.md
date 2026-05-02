@@ -1,9 +1,3 @@
-
----
-
-# `docs/agents.md`
-
-```md
 # Setup Boss — Lista Oficial de Agents
 
 ## Objetivo
@@ -19,15 +13,24 @@ Este arquivo é a fonte oficial para controle de expansão multi-agent.
 | Agent | Arquivo | Status | Responsabilidade única |
 |---|---|---|---|
 | Project Scan | `agents/project-scan.md` | active | Analisar o projeto e gerar contexto técnico inicial |
-| Architect | `agents/architect.md` | active | Planejar a execução da task antes de qualquer código |
-| Cursor Template | `agents/cursor-template.md` | active | Orientar a execução técnica no Cursor conforme plano aprovado |
-| Reviewer | `agents/reviewer.md` | active | Validar a entrega contra a task e critérios definidos |
+| Architect | `agents/architect.md` | active | Planejar a execução da task antes de alterar arquivos |
+| Executor | `agents/executor.md` | active | Aplicar mudanças autorizadas aos arquivos reais do projeto alvo |
+| Reviewer | `agents/reviewer.md` | active | Validar a entrega contra a task e critérios; priorizar estado real no disco |
 | Correction | `agents/correction.md` | active | Gerar instruções de correção a partir do review |
 | Knowledge | `agents/knowledge.md` | active | Registrar aprendizados reutilizáveis sem virar log |
 
 ---
 
-## Pipeline oficial
+## Legado (não faz parte do ciclo automático v2)
+
+| Agent | Arquivo | Nota |
+|---|---|---|
+| Cursor Template | `agents/cursor-template.md` | Era usado quando a execução técnica era manual; o pipeline v2.0.0 usa **`executor`**. |
+
+---
+
+## Pipeline oficial (v2.0.0)
 
 ```text
-scan → architect → cursor → review → correction → knowledge
+scan → architect → executor → review → correction → executor → knowledge
+```

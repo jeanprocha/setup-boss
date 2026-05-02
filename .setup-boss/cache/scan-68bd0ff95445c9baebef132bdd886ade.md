@@ -1,184 +1,235 @@
+```markdown
 # Project Scan
 
 ## Summary
 
-Projeto de landing page estática em português para captação de leads de sofás, com CTA para WhatsApp. Pelas evidências fornecidas, o projeto roda no navegador e usa HTML/CSS/JavaScript vanilla. Há lógica para montar links `wa.me` dinamicamente a partir de `data-whatsapp` no `<body>`, com suporte a UTMs e disparo de evento customizado para tracking. Não há evidência de backend, banco de dados, package manager, build tool, testes automatizados ou infraestrutura declarada.
+Landing page estática de sofás com foco em captação via WhatsApp. Pelas evidências recebidas, é um projeto front-end simples em HTML, CSS e JavaScript vanilla, sem backend, sem gerenciador de pacotes, sem build e sem testes automatizados identificados. A lógica funcional principal está em `js/main.js`, que reescreve links de CTA com base em `body[data-whatsapp]` e nos atributos `data-wa-*`.
 
 ## Stack
 
-- Frontend: HTML, CSS, JavaScript vanilla
-- Backend: Não identificado
+- Frontend: HTML5, CSS3, JavaScript vanilla
+- Backend: Não identificado por evidência
 - Database: Não identificado
-- Infra: Não identificada; parece compatível com hospedagem estática, mas isso é inferência
+- Infra: Não identificada
 - Package manager: Não identificado
 - Build tool: Não identificado
 
 ## Project Structure
 
-Principais pastas e responsabilidades observados:
-
-- `index.html`
-  - Página principal da landing
-  - Contém estrutura de hero, benefícios, faixa de confiança, produtos e CTAs
-  - Define o número de WhatsApp via `data-whatsapp` no `<body>`
-
-- `css/styles.css`
-  - Estilos globais
-  - Layout responsivo, botões, hero, benefícios, trust strip, cards de produto e CTA final
-  - Arquivo fornecido está truncado no final
-
-- `js/main.js`
-  - Lógica dos links de WhatsApp
-  - Leitura de parâmetros UTM da URL
-  - Geração do `href` para `https://wa.me/...`
-  - Disparo do evento customizado `whatsapp_cta_click`
+Principais pastas e responsabilidades identificadas:
 
 - `.setup-boss/`
-  - Contexto local do projeto
-  - Inclui `knowledge-base.md`, `project-scan.md` e insumos do scan
-  - Não faz parte do runtime da aplicação
+  - contexto local do projeto
+  - arquivos confirmados:
+    - `knowledge-base.md`
+    - `project-scan-input.md`
+    - `project-scan.md`
+
+- `css/`
+  - `styles.css`
+  - estilos globais da landing
+  - responsabilidades confirmadas:
+    - layout base
+    - hero
+    - grids
+    - cards
+    - product cards
+    - steps
+    - CTA final
+    - responsividade
+
+- `js/`
+  - `main.js`
+  - lógica de enriquecimento dos links de WhatsApp
+
+- `index.html`
+  - página principal da landing
+  - referencia `css/styles.css`
+  - contém `body data-whatsapp="00000000000"`
+  - seções confirmadas diretamente no trecho fornecido:
+    - hero
+    - benefícios
+    - diferenciais
+    - produtos
+    - início de `#como-funciona`
 
 - `setup-boss/`
-  - Contexto do sistema/orquestração
-  - Não faz parte da aplicação runtime principal
+  - diretório auxiliar
+  - contém:
+    - `knowledge-base.md`
+    - `project-context.md`
+  - sem evidência de participação no runtime da landing
+
+Observações:
+- o `index.html` fornecido está truncado
+- não foi possível confirmar diretamente o fechamento completo do documento
+- não foi possível confirmar por evidência direta, neste trecho, a inclusão final de `<script src="js/main.js"></script>`
+- a truth local em `.setup-boss/knowledge-base.md` registra várias validações históricas do projeto, mas isso não substitui evidência direta do HTML completo
 
 ## Available Commands
 
-Não foram encontrados `package.json`, `README`, `Dockerfile`, `docker-compose`, scripts automatizados nem configuração de ferramentas de build/test/lint.
-
 Comandos encontrados para:
 
-- instalar:
+- instalar
   - não identificado
 
-- rodar local:
+- rodar local
   - abrir `index.html` no navegador
-  - opcionalmente servir por servidor estático local, mas isso não está documentado no projeto
 
-- build:
+- build
   - não identificado
 
-- testes:
+- testes
   - não identificado
 
-- lint:
+- lint
   - não identificado
 
-- migrations:
+- migrations
   - não identificado
+
+Observações:
+- não foi fornecido `package.json`
+- não foi fornecido `README`
+- não foi fornecido `Dockerfile`
+- não foi fornecido `docker-compose.yml` ou `docker-compose.yaml`
+- não há scripts automatizados confirmados
 
 ## Database
 
 - Tipo: não identificado
 - ORM/query builder: não identificado
-- Migrations: não identificado
-- Como conectar: não se aplica com base nas evidências
+- Migrations: não identificadas
+- Como conectar: não se aplica com base nas evidências atuais
 - Observações:
-  - Não há evidência de banco de dados
-  - O projeto analisado é estático e não mostra integração com API persistente
+  - não há sinais de persistência de dados
+  - o projeto aparenta ser puramente estático
 
 ## Environments
 
 - Local:
-  - Executável diretamente no navegador via `index.html`
-  - O comportamento dos CTAs depende de `data-whatsapp`
-  - As UTMs são lidas da query string da URL
+  - abrir `index.html` diretamente no navegador
 
 - Homologação:
-  - Não identificada
+  - não identificada nas evidências recebidas
 
 - Produção:
-  - Não identificada
+  - não identificada nas evidências recebidas
 
 - Variáveis relevantes:
-  - `data-whatsapp` no `<body>`: número usado para gerar links do WhatsApp
-  - Parâmetros suportados na URL:
-    - `utm_source`
-    - `utm_medium`
-    - `utm_campaign`
-    - `utm_content`
-    - `utm_term`
+  - `data-whatsapp` no `<body>` com valor atual `00000000000`
+  - atributos de CTA:
+    - `data-wa-href`
+    - `data-wa-msg`
+    - `data-wa-placement`
+
+Observações:
+- não foi fornecido `.env.example`
+- não há variáveis de ambiente formais identificadas
+- a configuração relevante confirmada está embutida no HTML
+- pela truth local em `.setup-boss/knowledge-base.md`, o número de WhatsApp deve ser tratado como item obrigatório de checklist operacional antes de publicação
 
 ## Logs & Debugging
 
-Onde procurar logs e como debugar:
+Onde procurar logs e como debugar.
 
-- Navegador / DevTools:
-  - `console.warn` quando `data-whatsapp` não está configurado
-  - inspeção dos `href` gerados em elementos com `data-wa-href`
-  - inspeção de cliques e do evento `whatsapp_cta_click`
+- Navegador / DevTools
+  - Console:
+    - verificar o log `WhatsApp handler carregado`
+    - identificar erros JavaScript em runtime
+  - Elements:
+    - inspecionar `body[data-whatsapp]`
+    - validar presença dos atributos `data-wa-*` nos CTAs
+    - conferir o `href` final após execução do script
+    - verificar `target`, `rel` e `aria-label`
+  - Network:
+    - confirmar carregamento de `css/styles.css`
+    - confirmar carregamento de `js/main.js`, se estiver referenciado no HTML completo
+  - Responsividade:
+    - testar comportamento em larguras próximas de `900px` e `640px`
 
-Pontos práticos:
-
-- verificar se o `<body>` possui `data-whatsapp` com dígitos válidos
-- verificar se os CTAs usam `data-wa-href`
-- verificar atributos opcionais:
-  - `data-wa-msg`
-  - `data-wa-placement`
-  - `data-product-id`
-- confirmar se o `href` final aponta para `https://wa.me/...`
-- confirmar se as UTMs presentes na URL são anexadas à mensagem
-- quando `data-whatsapp` estiver ausente/inválido:
-  - o script mantém `href="#"` e intercepta clique com `alert`
+Como debugar:
+- abrir a página no navegador
+- verificar se `js/main.js` executa sem erro
+- confirmar se os CTAs tiveram o `href` reescrito com `text=...`
+- confirmar se o número final usado no link veio de `body[data-whatsapp]`
+- testar clique manual nos botões
+- validar comportamento visual responsivo
 
 ## Validation
 
-Como validar mudanças com segurança:
+Como validar mudanças com segurança.
 
-- abrir a landing no navegador e verificar renderização geral
-- validar responsividade em diferentes larguras
-- testar CTAs com `data-wa-href`
-- confirmar que:
-  - com `data-whatsapp` válido, os links apontam para `wa.me` e abrem em nova aba
-  - sem `data-whatsapp`, há aviso no console e bloqueio por `alert`
-  - UTMs presentes na URL entram no texto enviado
-  - o evento `whatsapp_cta_click` é disparado no clique
-- validar acessibilidade básica observável:
-  - presença de `skip-link`
-  - foco visível nos botões
-  - uso de seções semânticas
-  - `alt` em imagens
+- abrir `index.html` no navegador
+- validar visualmente as seções confirmadas:
+  - hero
+  - benefícios
+  - diferenciais
+  - produtos
+  - trecho disponível de `#como-funciona`
+- testar responsividade manualmente
+- verificar se o CSS carrega sem erro
+- verificar se o JS carrega e executa sem erro, caso esteja referenciado no HTML completo
+- inspecionar os CTAs de WhatsApp
+- confirmar se o texto de `data-wa-msg` aparece codificado no `href`
+- confirmar se `data-whatsapp` está correto para o ambiente
+- testar o fluxo manual de clique
+
+Validações específicas úteis:
+- confirmar que CTAs com `data-wa-href="https://wa.me/00000000000"` são reescritos para usar o número normalizado de `body[data-whatsapp]`
+- confirmar que cada CTA mantém `data-wa-placement` coerente com sua posição
+- validar que a landing continua funcional sem backend
+
+Observações:
+- não há evidência de testes automatizados
+- não há lint identificado
+- não há CI/CD identificada
+- a validação disponível é majoritariamente manual, visual e funcional
 
 ## Risks / Unknowns
 
-Pontos não confirmados ou riscos:
+Pontos não confirmados ou riscos.
 
-- não há evidência de testes automatizados
-- não há evidência de lint
-- não há README do projeto
-- não há pipeline de build
-- não há definição de deploy/hospedagem no material fornecido
-- não há integração confirmada com GTM/GA; existe apenas evento customizado pronto para consumo
-- dependência externa de imagens do Unsplash
-- `index.html` fornecido está truncado, então a página completa não foi integralmente confirmada
-- `css/styles.css` também está truncado no final
-- o valor atual de `data-whatsapp` é placeholder (`5511999999999`), o que é risco operacional para publicação real
-- há um risco forte de erro em runtime em `js/main.js`: a função `appendUtmToMessage(base)` usa `Object.entries(u)`, mas a variável visível fora dela é `utm`; se o arquivo estiver exatamente como fornecido, isso pode causar falha
-- não foi identificado processo formal para atualização de conteúdo, imagens ou número de WhatsApp
+- ausência de `package.json`
+- ausência de `README`
+- ausência de comandos oficiais documentados
+- ausência de testes automatizados
+- ausência de lint
+- ausência de documentação de deploy/publicação
+- ausência de infraestrutura declarada
+- `data-whatsapp` está com placeholder `00000000000`
+- os CTAs dependem desse valor para conversão real
+- o `index.html` foi fornecido de forma truncada
+- não é possível confirmar por evidência direta o final do documento
+- não é possível confirmar por evidência direta se `js/main.js` está referenciado no HTML final
+- a truth local menciona histórico de validações com seções e CTAs adicionais além do trecho atual do HTML
+- há divergência entre `.setup-boss/knowledge-base.md` e o `js/main.js` atual:
+  - a truth local menciona suporte a UTM
+  - a truth local menciona evento `whatsapp_cta_click`
+  - isso não está comprovado no `js/main.js` enviado nesta análise
+
+Pontos desconhecidos:
+- se existe hospedagem configurada fora dos arquivos enviados
+- se existe uma versão mais completa/atual do `index.html` além do trecho compartilhado
+- se o HTML final contém outras seções citadas no histórico local
+- se há outros scripts JS não enviados
 
 ## Recommendations
 
-Próximos passos recomendados para melhorar o contexto do projeto:
+Próximos passos recomendados para melhorar o contexto do projeto.
 
-- confirmar os arquivos completos de `index.html` e `css/styles.css`, pois o material fornecido está parcial
-- confirmar se `js/main.js` está exatamente como enviado, especialmente o uso de `u` dentro de `appendUtmToMessage`
-- documentar uma forma oficial de execução local e publicação
-- registrar checklist operacional de publicação, incluindo validação obrigatória de `data-whatsapp`
-- confirmar se o evento `whatsapp_cta_click` será consumido por GTM, GA ou outra ferramenta
-- mapear responsável operacional por textos, imagens e número final de WhatsApp
-
-## SOURCE OF TRUTH HIERARCHY
-
-setup-boss/context = verdade global do sistema  
-setup-boss/docs = documentação operacional  
-project/.setup-boss = verdade local do projeto  
-outputs/<run-id> = histórico da execução
-
-## SOURCE OF TRUTH RULES
-
-- Use setup-boss/context apenas como verdade global do sistema.
-- Use setup-boss/docs apenas como documentação operacional.
-- Use project/.setup-boss como verdade local do projeto.
-- Não misture knowledge global com knowledge local do projeto.
-- Não escreva informações locais do projeto em setup-boss/context.
-- Não trate outputs antigos como fonte de verdade permanente.
+- confirmar se os arquivos enviados representam o estado atual completo do projeto
+- enviar o `index.html` completo para remover incerteza sobre:
+  - fechamento do documento
+  - seções finais
+  - inclusão de `js/main.js`
+- documentar a forma oficial de execução local, se houver além de abrir o HTML no navegador
+- documentar processo de publicação, se existir
+- tratar `data-whatsapp` como checklist obrigatório antes de homologação/produção
+- revalidar manualmente os CTAs em navegador após qualquer alteração
+- reconciliar a diferença entre `.setup-boss/knowledge-base.md` e o código atual, principalmente sobre:
+  - suporte a UTM
+  - tracking
+  - evento `whatsapp_cta_click`
+- anexar, em futuras validações, trecho ou diff do HTML alterado quando a aceitação depender de posição estrutural ou de atributos `data-wa-*` específicos
+```

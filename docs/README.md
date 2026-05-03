@@ -63,30 +63,27 @@ setup-boss/
 
 ---
 
-## Estado atual (Fase 3)
+### Status atual
 
-Execução totalmente automática no repositório alvo:
+Fase 3 — Executor local automático (estável)
 
-- `executor` aplica alterações reais aos arquivos permitidos pelo architect
-- `review` usa o estado real dos arquivos no disco como fonte de verdade (`REAL FILE STATE`), complementado pelo `executor-output`
-- loop de correction operacional quando o review rejeita
-- knowledge persistido no projeto (e contexto global preservado)
-
----
-
-## Limitações atuais
-
-- edição estrutural global ainda limitada (principalmente texto/gestão de arquivos completos pelo LLM)
-- ausência de validação por build ou suíte de testes automatizada no pipeline
-- dependência do LLM para decisões finas de código e marcação
+✔ Pipeline completo funcionando (scan → architect → executor → review → knowledge)  
+✔ Sistema de memória `.IA` implementado  
+✔ Activity History inteligente com validação de leak (NONE / SOFT / HARD)  
+✔ Fallback mínimo seguro para garantir qualidade da memória  
 
 ---
 
-## Próxima evolução (Fase 4)
+## Garantias do sistema
 
-Executor híbrido:
+- Nenhuma execução polui a memória do projeto
+- Conteúdo bruto (TASK / Review / Executor) nunca é persistido
+- Memória prioriza qualidade sobre completude
+- Sistema tolerante a erro com fallback determinístico
 
-- parsing estruturado (HTML / AST onde couber)
-- inserções e patches mais determinísticos onde possível
-- validação via build ou testes onde o projeto permitir
+---
 
+## Próximos passos
+
+- Otimização de prompts
+- Execução híbrida (local + API)

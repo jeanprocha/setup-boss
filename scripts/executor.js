@@ -435,6 +435,10 @@ Para cada alteração com sucesso:
 
 blocked
 
+## Arquivos alterados
+
+- _(nenhum arquivo escrito nesta execução — estado bloqueado)._
+
 ## Reason
 
 ${result.blocked_reason}
@@ -469,6 +473,10 @@ ${(result.evidence || []).map((e) => `- ${e}`).join("\n")}
 ## Status
 
 success
+
+## Arquivos alterados
+
+${applied.length ? applied.map((item) => `- \`${item.path}\``).join("\n") : "- _(lista vazio em changes — estado inesperado)._"}
 
 ## Summary
 

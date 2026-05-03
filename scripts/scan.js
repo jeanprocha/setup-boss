@@ -3,6 +3,7 @@ const path = require("path");
 require("dotenv").config();
 
 const OpenAI = require("openai");
+const { ensureIA, collectIAContext } = require("./ensure-ia");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,6 +15,7 @@ const SOURCE_OF_TRUTH = {
   globalContextDir: path.join(ROOT_DIR, "context"),
   operationalDocsDir: path.join(ROOT_DIR, "docs"),
   projectSetupDirName: ".setup-boss",
+  projectIADirName: ".IA",
 };
 
 function safeRead(file) {
@@ -203,6 +205,7 @@ async function runScan(projectArg, options = {}) {
   const globalContext = collectGlobalContext();
   const operationalDocs = collectOperationalDocs();
   const projectLocalTruth = collectProjectLocalTruth(projectSetupDir);
+  const projectIAContext = collectIAContext(projectRoot);
 
   const prompt = `${agent}
 
@@ -210,14 +213,16 @@ async function runScan(projectArg, options = {}) {
 
 setup-boss/context = verdade global do sistema
 setup-boss/docs = documentação operacional
-project/.setup-boss = verdade local do projeto
+project/.setup-boss = verdade técnica local do pipeline
+project/.IA = verdade semântica local do projeto
 outputs/<run-id> = histórico da execução
 
 ## SOURCE OF TRUTH RULES
 
 - Use setup-boss/context apenas como verdade global do sistema.
 - Use setup-boss/docs apenas como documentação operacional.
-- Use project/.setup-boss como verdade local do projeto.
+- Use project/.setup-boss como verdade técnica local do pipeline.
+- Use project/.IA como base semântica persistente do projeto.
 - Não misture knowledge global com knowledge local do projeto.
 - Não escreva informações locais do projeto em setup-boss/context.
 - Não trate outputs antigos como fonte de verdade permanente.
@@ -227,6 +232,9 @@ ${globalContext}
 ${operationalDocs}
 
 ${projectLocalTruth}
+
+## PROJECT IA CONTEXT
+${projectIAContext || "(pasta .IA ainda não existente ou vazia)"}
 
 ## PROJECT TARGET
 ${projectRoot}
@@ -258,21 +266,40 @@ ${importantFiles}
   console.log("[SCAN] saving scan-output.md if outputDir exists");
   fs.writeFileSync(projectScanPath, scanOutput, "utf-8");
 
-  if (outputDirArg) {
-    const outputDir = path.isAbsolute(outputDirArg)
+  const resolvedPipelineOutput = outputDirArg
+    ? path.isAbsolute(outputDirArg)
       ? outputDirArg
-      : path.join(ROOT_DIR, "outputs", outputDirArg);
+      : path.join(ROOT_DIR, "outputs", outputDirArg)
+    : null;
 
-    ensureDir(outputDir);
+  const iaMode = resolvedPipelineOutput ? "diagnostic" : "minimal";
+
+  console.log(
+    `[SCAN] garantindo .IA (baseline, sem IA) + diagnóstico: modo=${iaMode}`,
+  );
+
+  const iaResult = await ensureIA(projectRoot, {
+    projectScan: scanOutput,
+    outputDir: resolvedPipelineOutput,
+    mode: iaMode,
+  });
+
+  console.log("[SCAN] .IA dir:", iaResult.iaDir);
+  if (iaResult.created.length > 0) {
+    console.log("[SCAN] .IA files created:", iaResult.created.join(", "));
+  }
+
+  if (resolvedPipelineOutput) {
+    ensureDir(resolvedPipelineOutput);
 
     fs.writeFileSync(
-      path.join(outputDir, "scan-output.md"),
+      path.join(resolvedPipelineOutput, "scan-output.md"),
       scanOutput,
       "utf-8"
     );
 
     fs.writeFileSync(
-      path.join(outputDir, "scan-input.md"),
+      path.join(resolvedPipelineOutput, "scan-input.md"),
       prompt,
       "utf-8"
     );
@@ -285,6 +312,7 @@ ${importantFiles}
     projectRoot,
     projectSetupDir,
     projectScanPath,
+    projectIADir: iaResult.iaDir,
     scanOutput,
   };
 }

@@ -6,6 +6,7 @@ const OpenAI = require("openai");
 const runScan = require("./scan");
 const { loadAgent } = require("../core/agent-metadata");
 const { validateArchitectOutput } = require("./validate-architect");
+const { ensureIA, collectIAContext } = require("./ensure-ia");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -130,7 +131,11 @@ async function main() {
     await runScan(projectArg, { outputDir });
     console.log("[ARCHITECT] after runScan");
   } else {
-    console.log("⏭️ Scan pulado por cache recente");
+    console.log("⏭️ Scan pulado por cache recente — baseline .IA + ia-diagnostics");
+    await ensureIA(projectRoot, {
+      mode: "diagnostic",
+      outputDir,
+    });
   }
 
   const agentPath = path.join(ROOT_DIR, "agents", "architect.md");
@@ -141,6 +146,7 @@ async function main() {
 
   const { content: architectPrompt, metadata: agentMeta } = loadAgent(agentPath);
   const projectScan = fs.readFileSync(projectScanPath, "utf-8");
+  const projectIAContext = collectIAContext(projectRoot);
 
   const fullPrompt = `${architectPrompt}
 
@@ -161,11 +167,18 @@ Regras invioláveis:
 - Não proponha instalação de dependência sem justificativa explícita.
 - Não proponha refatoração fora do escopo.
 - Em "## Arquivos prováveis", liste caminhos relativos ao projeto, um por linha.
-- Se houver divergência entre task, scan e código, pare e reporte em "## Critério de parada".
+- Se houver divergência entre task, scan, .IA e código, pare e reporte em "## Critério de parada".
+- Use PROJECT IA CONTEXT como base semântica persistente do projeto.
+- Use PROJECT SCAN como evidência técnica atual.
+- Se PROJECT IA CONTEXT e PROJECT SCAN divergirem, priorize evidência atual do código e aponte a divergência.
 
 ## PROJECT SCAN
 
 ${projectScan}
+
+## PROJECT IA CONTEXT
+
+${projectIAContext || "(pasta .IA ainda não existente ou vazia)"}
 
 ## TASK
 
@@ -198,6 +211,7 @@ ${task}
     projectName,
     projectRoot,
     projectSetupDir,
+    projectIADir: path.join(projectRoot, ".IA"),
     taskPath,
     taskArg,
     projectArg,
@@ -211,7 +225,8 @@ ${task}
       hierarchy: {
         "setup-boss/context": "verdade global do sistema",
         "setup-boss/docs": "documentação operacional",
-        "project/.setup-boss": "verdade local do projeto",
+        "project/.setup-boss": "verdade técnica local do pipeline",
+        "project/.IA": "verdade semântica local do projeto",
         "outputs/<run-id>": "histórico da execução",
       },
     },

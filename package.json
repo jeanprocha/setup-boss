@@ -8,7 +8,8 @@
     "knowledge": "node scripts/knowledge.js",
     "run": "node scripts/run.js",
     "scan": "node scripts/scan.js",
-    "correction": "node scripts/correction.js"
+    "correction": "node scripts/correction.js",
+    "ensure-ia": "node scripts/ensure-ia.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

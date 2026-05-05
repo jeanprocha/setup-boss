@@ -7,6 +7,7 @@ const { createLLMClient, getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
+const { writePromptSizeRecord } = require("../core/prompt-sizes");
 
 const client = createLLMClient();
 
@@ -205,6 +206,14 @@ Regras adicionais:
 - Não copie o review inteiro.
 - Foque apenas nos problemas bloqueantes e ajustes necessários.
 `;
+
+  writePromptSizeRecord(outputDir, "correction", {
+    total_prompt_chars: prompt.length,
+    user_chars: prompt.length,
+    blocks: {
+      agent: agent.length,
+    },
+  });
 
   const correctionModel = getModelForStep("correction");
 

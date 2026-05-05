@@ -22,6 +22,36 @@ const IA_FILES = [
   "10-ai-rules.md",
 ];
 
+function envMaxChars(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const IA_CONTEXT_AI_RULES_MAX_CHARS = envMaxChars(
+  "IA_CONTEXT_AI_RULES_MAX_CHARS",
+  2000,
+);
+
+function compactBlock(name, content, maxChars) {
+  const text = content == null ? "" : String(content);
+  if (!Number.isFinite(maxChars) || maxChars <= 0 || text.length <= maxChars) {
+    return text;
+  }
+  const originalChars = text.length;
+  const warn = `\n\n[truncated ${name}: original_chars=${originalChars} max_chars=${maxChars}]\n\n`;
+  const budget = maxChars - warn.length;
+  if (budget <= 1) {
+    return warn.slice(0, maxChars);
+  }
+  const headLen = Math.floor(budget / 2);
+  const tailLen = budget - headLen;
+  const head = text.slice(0, headLen);
+  const tail = text.slice(-tailLen);
+  return `${head}${warn}${tail}`;
+}
+
 const IA_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -1859,7 +1889,12 @@ function collectIAContext(projectRoot) {
 
     if (!raw.trim()) continue;
 
-    content += `\n\n## PROJECT IA: ${fileName}\n\n${raw}`;
+    const body =
+      fileName === "10-ai-rules.md"
+        ? compactBlock("10-ai-rules.md", raw, IA_CONTEXT_AI_RULES_MAX_CHARS)
+        : raw;
+
+    content += `\n\n## PROJECT IA: ${fileName}\n\n${body}`;
   }
 
   return content;

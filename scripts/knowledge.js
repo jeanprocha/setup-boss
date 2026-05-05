@@ -7,6 +7,7 @@ const { createLLMClient, getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
+const { writePromptSizeRecord } = require("../core/prompt-sizes");
 
 const client = createLLMClient();
 
@@ -207,6 +208,14 @@ ${hasRunContext ? "run-context" : "legacy"}
 ${promptContext}
 \`\`\`
 `;
+
+  writePromptSizeRecord(outputDir, "knowledge", {
+    total_prompt_chars: prompt.length,
+    user_chars: prompt.length,
+    blocks: {
+      agent: agent.length,
+    },
+  });
 
   const knowledgeModel = getModelForStep("knowledge");
 

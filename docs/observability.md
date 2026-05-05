@@ -26,6 +26,15 @@ scan → architect → run-context.json
 | `correction-instructions.md` | Instruções para a próxima volta do **executor**. |
 | `knowledge-update.md` | Bloco gerado na etapa knowledge (também append em **`.setup-boss/knowledge-base.md`** no projeto). |
 | `ia-diagnostics.json` | Quando o fluxo pede modo diagnóstico da **`.IA`** no output da corrida. |
+| **`prompt-sizes.json`** | Quando presente: totais de caracteres por etapa e por bloco do prompt (útil para comparar impacto de cortes no scan). |
+
+---
+
+## Prompt-sizes (`prompt-sizes.json`)
+
+- Ficheiro opcional na pasta da corrida; quando gravado, resume **`total_prompt_chars`** / blocos por etapa (**scan**, **architect**, **executor**, etc.).
+- Se **cache de scan** for usado nessa corrida, **`prompt-sizes.json`** pode **não incluir** uma entrada **`scan`** — o scan não voltou a correr, logo não há medição nova dessa etapa na mesma run.
+- Para **medir o scan real** (payload enviado ao modelo de scan na mesma corrida), force scan fresco: **`FORCE_SCAN=1`** antes de `npm run run …` (PowerShell: **`$env:FORCE_SCAN='1'`**), ou **`node scripts/run.js … --force-scan`** (ver **`docs/README.md`** — *Scan fresco*).
 
 ---
 
@@ -64,3 +73,4 @@ scan → architect → run-context.json
 1. Confirmar **`review-output.json`** para o estado da corrida.
 2. Comparar **`executor-changes.json`** com o disco no **`projectRoot`** de **`metadata.json`**.
 3. Inspecionar **`llm_usage`** / **`llm_usage_total`** para ordem de grandeza de custo/tokens entre corridas (com paridade de modelo e preços nas envs).
+4. Para comparar tamanhos de prompt entre corridas, usar **`prompt-sizes.json`** quando existir; lembrar que falta de entrada **`scan`** costuma indicar **scan servido por cache** — forçar scan fresco para medição real (ver secção **Prompt-sizes** acima).

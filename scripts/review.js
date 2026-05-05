@@ -7,6 +7,7 @@ const { createLLMClient, getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
+const { measureChatInput, writePromptSizeRecord } = require("../core/prompt-sizes");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 
@@ -100,6 +101,11 @@ function compactText(value, maxLength) {
   if (!maxLength || text.length <= maxLength) return text;
 
   return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+/** JSON numa linha para o prompt (sem pretty-print). */
+function compactJson(value) {
+  return JSON.stringify(value === undefined ? null : value);
 }
 
 function updateAgentMetadata(outputDir, agentMeta) {
@@ -622,38 +628,22 @@ async function run() {
 
   const reviewModel = getModelForStep("review");
 
-  const response = await client.responses.create({
-    model: reviewModel,
-    input: [
-      {
-        role: "system",
-        content: `
+  const reviewChatInput = [
+    {
+      role: "system",
+      content: `
 ${reviewerAgent}
 
-IMPORTANTE:
-- Respeite o Acceptance Level da task: ${levelHint}
-- Se não houver evidência suficiente → REJECTED
-- Se houver bloqueio de produção → BLOCKED
-- Se estiver correto para o nível → APPROVED
-- Nunca aprove sem evidência clara no código.
-
-Fonte de verdade:
-1. REAL FILE STATE PATCH EVIDENCE
-2. executor-changes.json
-3. executor-result.json
-4. run-context.json
-5. Executor Output
-
-Não exija arquivo completo.
-Não reanalise arquivo inteiro.
-Não dependa de scan completo nem architect-output completo quando run-context estiver disponível.
-Valide com base no objetivo resumido, critérios de aceite, foco de review, snippets reais do arquivo alterado e evidências do patch aplicado.
-Se o snippet não for suficiente para validar a task, rejeite solicitando evidência mais específica.
-        `.trim()
-      },
-      {
-        role: "user",
-        content: `
+Regras:
+- Acceptance level esperado: ${levelHint}
+- APPROVED só com evidência suficiente; estado real em disco é a fonte principal quando disponível.
+- REJECTED implica requires_correction = true (entrega insuficiente para o nível).
+- BLOCKED só por falta de definição, ambiente ou evidência impeditiva (não é ciclo de correção).
+        `.trim(),
+    },
+    {
+      role: "user",
+      content: `
 # CONTEXT MODE
 
 ${hasUsableRunContext ? "run-context" : "legacy-fallback"}
@@ -671,21 +661,33 @@ ${executor || "(executor-output.md vazio ou ausente)"}
 # EXECUTOR RESULT JSON
 
 \`\`\`json
-${JSON.stringify(executorResult, null, 2)}
+${compactJson(executorResult)}
 \`\`\`
 
 # EXECUTOR CHANGES JSON
 
 \`\`\`json
-${JSON.stringify(changedFiles, null, 2)}
+${compactJson(changedFiles)}
 \`\`\`
 
 # REAL FILE STATE PATCH EVIDENCE
 
 ${formatRealStateForPrompt(realState)}
-        `.trim()
-      }
-    ],
+        `.trim(),
+    },
+  ];
+
+  writePromptSizeRecord(outputDir, "review", {
+    ...measureChatInput(reviewChatInput),
+    blocks: {
+      reviewer_agent: reviewerAgent.length,
+      user_context: reviewChatInput[1].content.length,
+    },
+  });
+
+  const response = await client.responses.create({
+    model: reviewModel,
+    input: reviewChatInput,
     text: {
       format: {
         type: "json_schema",

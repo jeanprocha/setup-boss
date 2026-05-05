@@ -7,6 +7,7 @@ const { getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { ensureIA, collectIAContext } = require("./ensure-ia");
 const { resolveOutputDir } = require("../core/run-resolver");
+const { writePromptSizeRecord } = require("../core/prompt-sizes");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,6 +21,44 @@ const SOURCE_OF_TRUTH = {
   projectSetupDirName: ".setup-boss",
   projectIADirName: ".IA",
 };
+
+function envMaxChars(key, fallback) {
+  const raw = process.env[key];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const SCAN_FILE_TREE_MAX_CHARS = envMaxChars(
+  "SCAN_FILE_TREE_MAX_CHARS",
+  12000,
+);
+const SCAN_OPERATIONAL_DOCS_MAX_CHARS = envMaxChars(
+  "SCAN_OPERATIONAL_DOCS_MAX_CHARS",
+  12000,
+);
+const SCAN_GLOBAL_CONTEXT_MAX_CHARS = envMaxChars(
+  "SCAN_GLOBAL_CONTEXT_MAX_CHARS",
+  6000,
+);
+
+function compactBlock(name, content, maxChars) {
+  const text = content == null ? "" : String(content);
+  if (!Number.isFinite(maxChars) || maxChars <= 0 || text.length <= maxChars) {
+    return text;
+  }
+  const originalChars = text.length;
+  const warn = `\n\n[truncated ${name}: original_chars=${originalChars} max_chars=${maxChars}]\n\n`;
+  const budget = maxChars - warn.length;
+  if (budget <= 1) {
+    return warn.slice(0, maxChars);
+  }
+  const headLen = Math.floor(budget / 2);
+  const tailLen = budget - headLen;
+  const head = text.slice(0, headLen);
+  const tail = text.slice(-tailLen);
+  return `${head}${warn}${tail}`;
+}
 
 function safeRead(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : "";
@@ -221,10 +260,25 @@ async function runScan(projectArg, options = {}) {
     process.exit(1);
   }
 
-  const fileTree = listFiles(projectRoot, projectRoot).slice(0, 500).join("\n");
+  const fileTreeRaw = listFiles(projectRoot, projectRoot)
+    .slice(0, 500)
+    .join("\n");
+  const fileTree = compactBlock(
+    "file tree",
+    fileTreeRaw,
+    SCAN_FILE_TREE_MAX_CHARS,
+  );
   const importantFiles = collectImportantFiles(projectRoot);
-  const globalContext = collectGlobalContext();
-  const operationalDocs = collectOperationalDocs();
+  const globalContext = compactBlock(
+    "global_context",
+    collectGlobalContext(),
+    SCAN_GLOBAL_CONTEXT_MAX_CHARS,
+  );
+  const operationalDocs = compactBlock(
+    "operational_docs",
+    collectOperationalDocs(),
+    SCAN_OPERATIONAL_DOCS_MAX_CHARS,
+  );
   const projectLocalTruth = collectProjectLocalTruth(projectSetupDir);
   const projectIAContext = collectIAContext(projectRoot);
 
@@ -272,6 +326,24 @@ ${importantFiles}
 
   console.log("[SCAN] prompt length:", prompt.length);
   console.log("[SCAN] before OpenAI responses.create");
+
+  if (resolvedPipelineOutput) {
+    writePromptSizeRecord(resolvedPipelineOutput, "scan", {
+      total_prompt_chars: prompt.length,
+      user_chars: prompt.length,
+      blocks: {
+        agent: agent.length,
+        global_context: globalContext.length,
+        operational_docs: operationalDocs.length,
+        project_local_truth: projectLocalTruth.length,
+        file_tree: fileTree.length,
+        important_files: importantFiles.length,
+        project_ia_context: String(
+          projectIAContext || "(pasta .IA ainda não existente ou vazia)"
+        ).length,
+      },
+    });
+  }
 
   const scanModel = getModelForStep("scan");
 

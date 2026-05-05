@@ -63,7 +63,14 @@ const SOURCE_OF_TRUTH = {
 
 const CACHE_DIR = path.join(SOURCE_OF_TRUTH.systemDir, "cache");
 
-const args = process.argv.slice(2);
+const FORCE_SCAN_FLAG = "--force-scan";
+
+const rawCliArgs = process.argv.slice(2);
+const forceScan =
+  rawCliArgs.includes(FORCE_SCAN_FLAG) ||
+  process.env.FORCE_SCAN === "1" ||
+  /^true$/i.test(String(process.env.FORCE_SCAN || ""));
+const args = rawCliArgs.filter((a) => a !== FORCE_SCAN_FLAG);
 
 const MAX_CORRECTIONS = Number(process.env.MAX_CORRECTIONS || 3);
 const MAX_TOTAL_STEPS = Number(process.env.MAX_TOTAL_STEPS || 20);
@@ -72,8 +79,9 @@ const SCAN_CACHE_TTL_MS = Number(
   process.env.SCAN_CACHE_TTL_MS || 1000 * 60 * 10
 );
 
-console.log("[RUN] args:", args);
+console.log("[RUN] args:", rawCliArgs);
 console.log("[RUN] ROOT_DIR:", ROOT_DIR);
+console.log("[RUN] forceScan (--force-scan ou FORCE_SCAN=1|true):", forceScan);
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -329,7 +337,9 @@ async function finishKnowledge(logger, runId) {
   console.log("✅ Finalizado com sucesso");
 }
 
-async function startFlow(taskArg, projectArg) {
+async function startFlow(taskArg, projectArg, flowOptions = {}) {
+  const forceScanFresh = flowOptions.forceScan === true;
+
   if (!taskArg || !projectArg) {
     console.log("Uso:");
     console.log("npm run run tasks/exemplo.md ../landing-sofas");
@@ -357,7 +367,14 @@ async function startFlow(taskArg, projectArg) {
     writeRunIndex({ runId, projectRoot, outputDir });
 
     const scanCachePath = getScanCachePath(projectArg);
-    const canUseScanCache = ENABLE_SCAN_CACHE && isFreshCache(scanCachePath);
+    const canUseScanCache =
+      ENABLE_SCAN_CACHE && isFreshCache(scanCachePath) && !forceScanFresh;
+
+    if (forceScanFresh) {
+      console.log(
+        "[RUN] force-scan ativo: cache de scan ignorado; scan fresco nesta run."
+      );
+    }
 
     logger = new RunLogger({
       runId,
@@ -366,9 +383,13 @@ async function startFlow(taskArg, projectArg) {
       task: taskArg,
     });
 
+    logger.data.cache.scan_forced = Boolean(forceScanFresh);
+    logger.save();
+
     logger.startStep("architect", {
       scan_cache_enabled: ENABLE_SCAN_CACHE,
       scan_cache_used: canUseScanCache,
+      scan_forced: Boolean(forceScanFresh),
     });
 
     const architectArgs = [taskArg, projectArg, `--run-id=${runId}`];
@@ -609,7 +630,7 @@ async function startFlow(taskArg, projectArg) {
 }
 
 async function main() {
-  await startFlow(args[0], args[1]);
+  await startFlow(args[0], args[1], { forceScan });
 }
 
 main().catch((error) => {

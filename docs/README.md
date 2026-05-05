@@ -20,7 +20,7 @@ scan → architect → run-context.json
 → knowledge
 ```
 
-- **scan**: pode ser omitido quando o cache de scan está válido (`ENABLE_SCAN_CACHE`); o output da corrida pode ainda assim incluir scan copiado em cache.
+- **scan**: pode ser omitido quando o cache de scan está válido (`ENABLE_SCAN_CACHE`); o output da corrida pode ainda assim incluir scan copiado em cache. Para **obrigar** um scan real na mesma corrida (métricas / diagnóstico), ver **[Scan fresco](#scan-fresco-diagnóstico--medições-de-prompt)** abaixo.
 - **architect**: produz o plano, valida enforcement, escreve **`run-context.json`** e artefactos da corrida no diretório de output.
 - **run-context.json**: geração pelo architect; agrega resumo da task, critérios de aceite, **`allowed_files`**, foco de review e metadados de execução — **substitui a necessidade de injetar task/scan/architect completos** nas etapas seguintes quando válido.
 - **executor**: resposta estruturada com **`operation: "patch"`** por alteração; cada patch usa **`search`** (trecho que deve ocorrer **exactamente uma vez** no ficheiro) e **`replace`**; não há modo suportado de reescrever o ficheiro inteiro via o schema atual. Escrita no disco só para paths em **`allowed_files`**, com validação em código (`scripts/executor.js`).
@@ -79,6 +79,27 @@ No projeto alvo também: **`.setup-boss/`** (scan, knowledge local), **`.IA/`** 
 | `npm run ensure-ia <caminho-projeto>` | Baseline `.IA`; `--full` usa IA |
 
 Variáveis: ver **`.env.example`** (`OPENAI_API_KEY`, `OPENAI_MODEL`, `*_MODEL` por etapa, preços opcionais por modelo, `MAX_CORRECTIONS`, `MAX_TOTAL_STEPS`, `ENABLE_SCAN_CACHE`).
+
+### Scan fresco (diagnóstico / medições de prompt)
+
+Por defeito, **`npm run run`** pode **usar cache de scan** quando este está válido (`ENABLE_SCAN_CACHE`).
+
+Para **diagnóstico de prompt-sizes** ou para validar **cortes no payload do scan**, force uma corrida com scan executado de verdade:
+
+**PowerShell:**
+
+```powershell
+$env:FORCE_SCAN='1'
+npm run run tasks/diagnostico-prompt-sizes.md .
+```
+
+**Node direto** (evita casos em que o npm não repassa flags como `--force-scan`):
+
+```bash
+node scripts/run.js tasks/diagnostico-prompt-sizes.md . --force-scan
+```
+
+Em alguns ambientes o **`npm run`** pode **não repassar** correctamente `--force-scan`; use **`FORCE_SCAN=1`** com npm ou invoque **`node scripts/run.js`** como acima.
 
 ---
 

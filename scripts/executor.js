@@ -6,6 +6,8 @@ const { loadAgent } = require("../core/agent-metadata");
 const { createLLMClient, getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { resolveOutputDir } = require("../core/run-resolver");
+const { writePromptSizeRecord } = require("../core/prompt-sizes");
+const { appendProblemHistoryEntry } = require("../core/problem-history");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 
@@ -761,10 +763,6 @@ ${promptContext}
 
 ${correction || "(nenhuma correção pendente)"}
 
-## ALLOWED FILES
-
-${allowedFiles.map((file) => `- ${file}`).join("\n")}
-
 ## CURRENT FILE SNIPPETS
 
 Os arquivos abaixo foram truncados para reduzir tokens.
@@ -786,50 +784,24 @@ ${file.snippet}
 
 ## EXECUTION RULE
 
-Retorne JSON.
+Resposta só JSON (schema). Paths permitidos: \`allowed_files\` no RUN CONTEXT (relativos ao PROJECT ROOT).
 
-Se a task exigir implementação ou evolução do código:
-
-- É OBRIGATÓRIO gerar alterações
-- NÃO é permitido retornar sucesso com changes vazio
-- Se nenhuma alteração for necessária, retorne status = "blocked" e justifique
-
-Formato obrigatório de alteração:
-
-- operation = "patch"
-- path = caminho relativo permitido
-- search = trecho EXATO e ÚNICO existente no arquivo real
-- replace = versão final do trecho
-- reason = motivo objetivo
-
-Regras de PATCH:
-
-- NÃO retorne arquivo completo
-- NÃO use write_file
-- search deve existir exatamente uma vez no arquivo real
-- replace deve conter o trecho final completo que substituirá search
-- preserve conteúdo existente fora do trecho alterado
-- não altere arquivos fora de ALLOWED FILES
-- se o snippet não contém contexto suficiente para um patch seguro, retorne blocked
-
-Quando alterar HTML:
-
-- preserve o conteúdo existente
-- localize a seção alvo
-- use search pequeno, estável e único
-- insira apenas o bloco necessário dentro da seção
-- não reescreva o HTML inteiro
-
-Se conseguir executar:
-- status = "success"
-- changes deve conter patches aplicáveis
-
-Se não conseguir:
-- status = "blocked"
-- changes = []
-- blocked_reason preenchido
-- evidence preenchido
+- \`operation\`: \`patch\` apenas.
+- \`path\`: relativo, ∈ \`allowed_files\`.
+- \`search\`: texto exato presente no ficheiro real, **uma** ocorrência.
+- \`replace\`: texto final do trecho.
+- Não reescrever ficheiro inteiro nem usar caminhos fora de \`allowed_files\`.
+- Implementação exige alteração: \`success\` com \`changes\` não vazio; se não aplicável, \`blocked\` + motivo.
+- Snippet insuficiente para patch seguro → \`blocked\`.
 `.trim();
+
+  writePromptSizeRecord(outputDir, "executor", {
+    total_prompt_chars: prompt.length,
+    user_chars: prompt.length,
+    blocks: {
+      agent: agent.length,
+    },
+  });
 
   fs.writeFileSync(path.join(outputDir, "executor-input.md"), prompt, "utf-8");
 

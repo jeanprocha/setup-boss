@@ -11,12 +11,43 @@ const { getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { getRunId, writeRunIndex } = require("../core/run-resolver");
+const { writePromptSizeRecord } = require("../core/prompt-sizes");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 const ROOT_DIR = path.resolve(__dirname, "..");
+
+function envMaxChars(key, fallback) {
+  const raw = process.env[key];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const ARCHITECT_PROJECT_SCAN_MAX_CHARS = envMaxChars(
+  "ARCHITECT_PROJECT_SCAN_MAX_CHARS",
+  8000,
+);
+
+function compactBlock(name, content, maxChars) {
+  const text = content == null ? "" : String(content);
+  if (!Number.isFinite(maxChars) || maxChars <= 0 || text.length <= maxChars) {
+    return text;
+  }
+  const originalChars = text.length;
+  const warn = `\n\n[truncated ${name}: original_chars=${originalChars} max_chars=${maxChars}]\n\n`;
+  const budget = maxChars - warn.length;
+  if (budget <= 1) {
+    return warn.slice(0, maxChars);
+  }
+  const headLen = Math.floor(budget / 2);
+  const tailLen = budget - headLen;
+  const head = text.slice(0, headLen);
+  const tail = text.slice(-tailLen);
+  return `${head}${warn}${tail}`;
+}
 
 function ensureFile(file, label) {
   if (!fs.existsSync(file)) {
@@ -375,7 +406,14 @@ async function main() {
 
   const { content: architectPrompt, metadata: agentMeta } = loadAgent(agentPath);
   const projectScan = fs.readFileSync(projectScanPath, "utf-8");
+  const limitedProjectScan = compactBlock(
+    "project_scan",
+    projectScan,
+    ARCHITECT_PROJECT_SCAN_MAX_CHARS,
+  );
   const projectIAContext = collectIAContext(projectRoot);
+  const projectIAContextBlock =
+    projectIAContext || "(pasta .IA ainda não existente ou vazia)";
 
   const fullPrompt = `${architectPrompt}
 
@@ -403,16 +441,39 @@ Regras invioláveis:
 
 ## PROJECT SCAN
 
-${projectScan}
+${limitedProjectScan}
 
 ## PROJECT IA CONTEXT
 
-${projectIAContext || "(pasta .IA ainda não existente ou vazia)"}
+${projectIAContextBlock}
 
 ## TASK
 
 ${task}
 `;
+
+  const measuredBlocksTotal =
+    architectPrompt.length +
+    limitedProjectScan.length +
+    projectIAContextBlock.length +
+    task.length;
+
+  const enforcementAndHeadersChars = Math.max(
+    0,
+    fullPrompt.length - measuredBlocksTotal,
+  );
+
+  writePromptSizeRecord(outputDir, "architect", {
+    total_prompt_chars: fullPrompt.length,
+    user_chars: fullPrompt.length,
+    blocks: {
+      agent: architectPrompt.length,
+      project_scan: limitedProjectScan.length,
+      project_ia_context: projectIAContextBlock.length,
+      task: task.length,
+      enforcement_and_headers: enforcementAndHeadersChars,
+    },
+  });
 
   fs.writeFileSync(
     path.join(outputDir, "architect-input.md"),

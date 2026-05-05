@@ -31,7 +31,7 @@ Registrar agents do Setup Boss, responsabilidades e relação com o pipeline e o
 
 | Ficheiro | Nota |
 |----------|------|
-| `cursor-template.md` | Legado de modelo para execução manual; o pipeline atual usa **executor** automático (PATCH). |
+| `cursor-template.md` | **Legado** — não entra no `npm run run`. Usado por `scripts/cursor.js` (compatibilidade). O fluxo oficial é **executor** + PATCH. |
 
 ---
 

@@ -6,11 +6,11 @@ Registar a evolução real do sistema por fase, **sem descrever comportamento qu
 
 ---
 
-## Fase 1 — MVP
+## Fase 1 — MVP (histórico)
 
 - **Architect** e plano textual
-- Task e prompts para **aplicação manual** das alterações no projeto alvo
-- **Sem** executor automático integrado ao pipeline
+- Alterações no repo **fora do orquestrador** (sem executor integrado)
+- **Sem** executor automático no pipeline
 
 ---
 
@@ -25,7 +25,7 @@ Registar a evolução real do sistema por fase, **sem descrever comportamento qu
 Pipeline típico **antes** do executor integrado:
 
 ```text
-scan → architect → (alterações manuais no repo) → review → correction → …
+scan → architect → (alterações fora do executor, histórico) → review → correction → …
 ```
 
 ---

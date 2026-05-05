@@ -3,7 +3,10 @@ const path = require("path");
 require("dotenv").config();
 
 const OpenAI = require("openai");
+const { getModelForStep } = require("../core/llm-client");
+const { recordLLMUsage } = require("../core/llm-usage");
 const { ensureIA, collectIAContext } = require("./ensure-ia");
+const { resolveOutputDir } = require("../core/run-resolver");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -183,6 +186,24 @@ async function runScan(projectArg, options = {}) {
   console.log("[SCAN] outputDir:", options.outputDir ?? null);
 
   const outputDirArg = options.outputDir || getArgValue("--output-dir=");
+
+  let resolvedPipelineOutput = null;
+
+  if (options.outputDir) {
+    resolvedPipelineOutput = path.resolve(options.outputDir);
+  } else if (outputDirArg) {
+    const raw = outputDirArg.trim();
+
+    try {
+      resolvedPipelineOutput = path.isAbsolute(raw)
+        ? path.resolve(raw)
+        : resolveOutputDir(raw);
+    } catch (err) {
+      console.error("[SCAN] Não foi possível resolver outputDir:", err.message || err);
+      process.exit(1);
+    }
+  }
+
   const projectRoot = path.resolve(ROOT_DIR, projectArg);
   const projectSetupDir = path.join(
     projectRoot,
@@ -215,7 +236,7 @@ setup-boss/context = verdade global do sistema
 setup-boss/docs = documentação operacional
 project/.setup-boss = verdade técnica local do pipeline
 project/.IA = verdade semântica local do projeto
-outputs/<run-id> = histórico da execução
+project/.IA/outputs/<run-id> = histórico da execução
 
 ## SOURCE OF TRUTH RULES
 
@@ -252,8 +273,10 @@ ${importantFiles}
   console.log("[SCAN] prompt length:", prompt.length);
   console.log("[SCAN] before OpenAI responses.create");
 
+  const scanModel = getModelForStep("scan");
+
   const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5.5",
+    model: scanModel,
     input: prompt,
   });
 
@@ -261,16 +284,19 @@ ${importantFiles}
 
   const scanOutput = response.output_text || "";
 
+  if (resolvedPipelineOutput) {
+    recordLLMUsage({
+      outputDir: resolvedPipelineOutput,
+      step: "scan",
+      model: scanModel,
+      usage: response.usage,
+    });
+  }
+
   const projectScanPath = path.join(projectSetupDir, "project-scan.md");
   console.log("[SCAN] saving project-scan.md");
   console.log("[SCAN] saving scan-output.md if outputDir exists");
   fs.writeFileSync(projectScanPath, scanOutput, "utf-8");
-
-  const resolvedPipelineOutput = outputDirArg
-    ? path.isAbsolute(outputDirArg)
-      ? outputDirArg
-      : path.join(ROOT_DIR, "outputs", outputDirArg)
-    : null;
 
   const iaMode = resolvedPipelineOutput ? "diagnostic" : "minimal";
 

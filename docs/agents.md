@@ -1,36 +1,49 @@
-# Setup Boss — Lista Oficial de Agents
+# Setup Boss — Lista oficial de agents
 
 ## Objetivo
 
-Registrar a lista oficial de agents do Setup Boss, suas responsabilidades, inputs, outputs e status.
-
-Este arquivo é a fonte oficial para controle de expansão multi-agent.
+Registrar agents do Setup Boss, responsabilidades e relação com o pipeline e os artefatos em disco.
 
 ---
 
-## Agents ativos
+## Agents ativos (prompts em `agents/`)
 
-| Agent | Arquivo | Status | Responsabilidade única |
-|---|---|---|---|
-| Project Scan | `agents/project-scan.md` | active | Analisar o projeto e gerar contexto técnico inicial |
-| Architect | `agents/architect.md` | active | Planejar a execução da task antes de alterar arquivos |
-| Executor | `agents/executor.md` | active | Aplicar mudanças autorizadas aos arquivos reais do projeto alvo |
-| Reviewer | `agents/reviewer.md` | active | Validar a entrega contra a task e critérios; priorizar estado real no disco |
-| Correction | `agents/correction.md` | active | Gerar instruções de correção a partir do review |
-| Knowledge | `agents/knowledge.md` | active | Registrar aprendizados reutilizáveis sem virar log |
-
----
-
-## Legado (não faz parte do ciclo automático v2)
-
-| Agent | Arquivo | Nota |
-|---|---|---|
-| Cursor Template | `agents/cursor-template.md` | Era usado quando a execução técnica era manual; o pipeline v2.0.0 usa **`executor`**. |
+| Agent | Ficheiro | Responsabilidade única |
+|-------|----------|-------------------------|
+| Project Scan | `project-scan.md` | Relatório técnico inicial do projeto (stack, estrutura, riscos). Usado pelo fluxo de scan. |
+| Architect | `architect.md` | Plano antes de tocar em ficheiros; saída validada em Markdown com secções obrigatórias; alimenta **run-context.json**. |
+| Executor | `executor.md` | Aplicar alterações autorizadas via **PATCH** (`search`/`replace`) só em paths permitidos. |
+| Reviewer | `reviewer.md` | Validar entrega contra task/nível de aceite; saída JSON + relatório Markdown. |
+| Correction | `correction.md` | Instruções objetivas para o próximo executor após review reprovado. |
+| Knowledge | `knowledge.md` | Atualização concisa de knowledge reutilizável (não é log da corrida). |
 
 ---
 
-## Pipeline oficial (v2.0.0)
+## Agent auxiliar (fora do ciclo `run` principal)
+
+| Uso | Ficheiro | Nota |
+|-----|----------|------|
+| Bootstrap / `.IA` por IA | `project-profile.md` | Usado por `ensure-ia.js` em modos que chamam LLM (ex.: `--full`, enriquecimento semântico após run aprovado). Não é uma etapa nomeada igual às do `run.js`. |
+
+---
+
+## Legado
+
+| Ficheiro | Nota |
+|----------|------|
+| `cursor-template.md` | Legado de modelo para execução manual; o pipeline atual usa **executor** automático (PATCH). |
+
+---
+
+## Pipeline oficial e artefatos
 
 ```text
-scan → architect → executor → review → correction → executor → knowledge
+scan → architect → run-context.json
+→ executor (PATCH)
+→ review
+→ [correction → executor → review]*
+→ knowledge
 ```
+
+- **run-context.json** não é um agent; é **JSON** gerado pelo script **architect** a partir da task e do output do architect.
+- Cada agent acima corresponde a um script que monta o prompt e chama o modelo via `core/llm-client.js` (modelo por etapa).

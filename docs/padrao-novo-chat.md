@@ -1,72 +1,57 @@
-# Setup Boss — Padrão de Novo Chat
+# Setup Boss — Padrão de novo chat
 
 ## Contexto
 
-Estou continuando o desenvolvimento do sistema **Setup Boss**.
-
-Você NÃO tem contexto prévio.  
-Tudo que você precisa saber será enviado nesta conversa.
+Continuação do desenvolvimento do **Setup Boss**. O modelo **não** tem histórico anterior além do que for colado nesta conversa.
 
 ---
 
-## Arquivos iniciais
+## Ficheiros iniciais sugeridos
 
-Você receberá:
+O utilizador pode enviar:
 
-- docs/ai-session-bootstrap.md
-- docs/setup-boss-roadmap.md
-- docs/setup-boss-vision.md
-- docs/README.md
+- `docs/ai-session-bootstrap.md`
+- `docs/setup-boss-roadmap.md`
+- `docs/setup-boss-vision.md`
+- `docs/README.md`
 
-Esses arquivos definem:
-
-- o que é o sistema
-- como ele funciona
-- em que nível está
-- quais evoluções estão planejadas
+Objetivo: alinhar com o **comportamento real** do repo (pipeline com **run-context**, **PATCH**, métricas LLM).
 
 ---
 
-## Objetivo deste início de conversa
+## Objetivo deste início
 
-Apenas carregar contexto.
-
-NÃO implemente nada ainda.  
-NÃO proponha alteração de arquivos ainda.  
-NÃO solicite arquivos de código ainda.
+Só **carregar contexto**. Sem implementação até haver uma **atividade** explícita.
 
 ---
 
 ## Regras de trabalho
 
-- NÃO assuma arquivos
-- NÃO invente contexto
-- NÃO proponha mudanças fora de uma atividade explícita
+- **Não assumir** ficheiros ou trechos de código não fornecidos.
+- **Não inventar** comportamento não presente nos scripts/`core`/agents.
+- O sistema já **não depende** de colar task/scan/architect completos em todas as etapa — **`run-context.json`** é a referência compacta quando válido.
+- O fluxo é **mais determinístico** nas fronteiras de segurança (paths, lista de ficheiros, PATCH único por `search`).
 
-Quando uma atividade for definida e precisar alterar algo:
+Quando existir atividade que exija alteração:
 
-1. Solicite o arquivo atual
-2. Aguarde o envio
-3. Gere um prompt pronto para o Cursor executar
-4. Quando for documento `.md`, gere o arquivo completo atualizado em um único bloco Markdown
+1. Preferir ler o ficheiro atual no workspace ou pedir o path exato.
+2. Para docs `.md`, devolver o **ficheiro completo** atualizado quando solicitado.
 
 ---
 
 ## Restrições
 
-- NÃO gerar pseudocódigo
-- NÃO responder de forma teórica
-- NÃO iniciar implementação sem atividade definida
+- Sem pseudocódigo quando o pedido for implementação real.
+- Sem plano longo antes da atividade estar definida.
 
 ---
 
 ## Primeira resposta esperada
 
-Após ler os arquivos iniciais, responda APENAS com:
+Resposta curta com:
 
-- entendimento resumido do sistema
-- estado atual identificado
-- pergunta: “Qual atividade vamos executar agora?”
+- entendimento do sistema (orquestração + custo + PATCH + run-context)
+- estado atual (v2.0.0 / Fase 3 conforme docs)
+- pergunta: **«Qual atividade vamos executar agora?»**
 
-Sem plano de implementação.
-Sem pedir arquivos de código.
+Sem pedir código desnecessário no primeiro turno.

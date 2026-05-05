@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-
-const ROOT_DIR = path.resolve(__dirname, "..");
+const { resolveOutputDir } = require("../core/run-resolver");
 
 const REQUIRED_SECTIONS = [
   "## Entendimento",
@@ -73,13 +72,18 @@ function main() {
   const outputArg = process.argv[2];
 
   if (!outputArg) {
-    console.log("Uso: node scripts/validate-architect.js <outputName|outputDir>");
+    console.log("Uso: node scripts/validate-architect.js <runId|outputDir>");
     process.exit(1);
   }
 
-  const outputDir = path.isAbsolute(outputArg)
-    ? outputArg
-    : path.join(ROOT_DIR, "outputs", outputArg);
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    console.error(err.message || err);
+    process.exit(1);
+  }
 
   const architectOutputPath = path.join(outputDir, "architect-output.md");
   const validationPath = path.join(outputDir, "architect-validation.json");

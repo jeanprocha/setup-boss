@@ -1,33 +1,27 @@
-# Setup Boss — Manutenção e Atualização de Documentos
+# Setup Boss — Manutenção e atualização de documentos
 
 ## Objetivo
 
-Garantir que a IA atualize corretamente os documentos do Setup Boss ao final de cada evolução.
+Garantir que a documentação em `docs/` acompanha o **código** e os **artefactos** reais do pipeline.
 
 ---
 
 ## Contexto
 
-O Setup Boss é um sistema versionado por evolução.
+O Setup Boss muda por:
 
-Cada conversa pode gerar mudanças em:
+- scripts (`scripts/`, `core/`)
+- agents (`agents/`)
+- variáveis de ambiente (`.env.example`)
 
-- comportamento do sistema
-- pipeline
-- regras
-- estrutura
-- limitações
-
-Essas mudanças DEVEM ser refletidas nos documentos.
+Qualquer mudança relevante no comportimento deve aparecer nos docs listados abaixo.
 
 ---
 
 ## Regra principal
 
-Sempre que houver mudança relevante no sistema:
-
 ```text
-os documentos devem ser atualizados
+Se altera o funcionamento observável → atualizar o doc correspondente.
 ```
 
 ---
@@ -35,99 +29,77 @@ os documentos devem ser atualizados
 ## Documentos e responsabilidades
 
 ### docs/README.md
-- como o sistema funciona hoje
-- comandos
-- pipeline atual
-- estado atual (fase)
 
----
+Visão geral, pipeline oficial (incluindo **run-context** e **PATCH**), comandos reais, estado atual.
 
 ### docs/setup-boss-roadmap.md
-- o que está sendo implementado agora
-- próximo passo técnico
 
----
+Concluído vs próximos passos (STEP 4–6 ou equivalente).
 
 ### docs/setup-boss-vision.md
-- fases do sistema (1 → 5)
-- nível atual
-- próxima fase
 
----
+Fases e posicionamento do produto (orquestração + custo).
 
 ### docs/setup-boss-evolution.md
-- histórico real do que já foi feito
-- marcar fases concluídas
-- atualizar estado atual
 
----
+Histórico factual; Fase 3 com bullets alinhados ao código atual.
 
 ### docs/ai-session-bootstrap.md
-- resumo do sistema para novo chat
-- deve refletir comportamento atual
 
----
+Resumo para novo chat; pipeline e conceitos atuais (**run-context**, PATCH, `llm_usage`).
 
 ### docs/padrao-novo-chat.md
-- padrão de comunicação com IA
-- só muda se o fluxo mudar
+
+Como iniciar conversa sem assumir contexto gigante.
+
+### docs/agents.md
+
+Lista de agents e pipeline.
+
+### docs/agents-governance.md
+
+Regras para criar novos agents.
+
+### docs/observability.md
+
+Artefactos de corrida, `run-log.json`, `metadata.json`, `llm_usage`, limitações.
 
 ---
 
 ## O que atualizar
 
-Atualize documentos SOMENTE se houver:
-
-- mudança de pipeline
-- nova etapa no sistema
-- alteração de comportamento
-- nova limitação ou regra
-- avanço de fase (ex: Fase 2 → Fase 3)
+- Mudança de pipeline ou de artefactos obrigatórios
+- Nova etapa ou novo instrumento (ex.: métricas, novo JSON)
+- Alteração de segurança ou limites (`MAX_*`, cache de scan)
+- Mudança de contrato dos agents (quando refletida nos scripts)
 
 ---
 
-## O que NÃO atualizar
+## O que não fazer
 
-- não reescrever documentos sem necessidade
-- não mudar estrutura sem motivo
-- não adicionar complexidade desnecessária
+- Reescrever docs sem mudança de sistema
+- Documentar planeamento como se já estivesse implementado
 
 ---
 
 ## Como atualizar
 
-1. solicitar o documento atual
-2. gerar versão completa atualizada
-3. manter padrão existente
-4. não quebrar formatação
+1. Ler o doc atual e o código afetado
+2. Substituir por versão completa coerente com o resto de `docs/`
+3. Manter tom técnico e direto
 
 ---
 
-## Critério de atualização
-
-Antes de atualizar, validar:
+## Critério
 
 ```text
-isso muda o funcionamento do sistema?
+Um desenvolvedor só com docs + repo consegue prever o comportamento do npm run run.
 ```
-
-Se NÃO → não atualizar  
-Se SIM → atualizar documento correto
-
----
-
-## Saída esperada
-
-Ao final da conversa, se houver mudanças:
-
-- indicar quais documentos precisam ser atualizados
-- solicitar os arquivos
-- gerar versões completas atualizadas
 
 ---
 
 ## Regra final
 
 ```text
-documentação deve sempre refletir o estado real do sistema
+Documentação = estado real do sistema.
 ```

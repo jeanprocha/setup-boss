@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { loadAgent } = require("../core/agent-metadata");
 const { extractAllowedFiles } = require("./validate-cursor");
+const { resolveOutputDir } = require("../core/run-resolver");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const outputArg = process.argv[2];
@@ -40,9 +41,14 @@ function replaceAllTemplate(content, replacements) {
   return output;
 }
 
-const outputDir = path.isAbsolute(outputArg)
-  ? outputArg
-  : path.join(ROOT_DIR, "outputs", outputArg);
+let outputDir;
+
+try {
+  outputDir = resolveOutputDir(outputArg);
+} catch (err) {
+  console.error(err.message || err);
+  process.exit(1);
+}
 
 ensureFile(outputDir, "Pasta de output");
 

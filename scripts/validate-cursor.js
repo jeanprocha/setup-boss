@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-
-const ROOT_DIR = path.resolve(__dirname, "..");
+const { resolveOutputDir } = require("../core/run-resolver");
 
 function read(file) {
   return fs.readFileSync(file, "utf-8");
@@ -99,13 +98,18 @@ function main() {
   const outputArg = process.argv[2];
 
   if (!outputArg) {
-    console.log("Uso: node scripts/validate-cursor.js <outputName|outputDir>");
+    console.log("Uso: node scripts/validate-cursor.js <runId|outputDir>");
     process.exit(1);
   }
 
-  const outputDir = path.isAbsolute(outputArg)
-    ? outputArg
-    : path.join(ROOT_DIR, "outputs", outputArg);
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    console.error(err.message || err);
+    process.exit(1);
+  }
 
   const architectOutputPath = path.join(outputDir, "architect-output.md");
   const cursorOutputPath = path.join(outputDir, "cursor-output.md");

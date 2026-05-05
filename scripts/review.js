@@ -2,14 +2,15 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
-const OpenAI = require("openai");
 const { loadAgent } = require("../core/agent-metadata");
+const { createLLMClient, getModelForStep } = require("../core/llm-client");
+const { recordLLMUsage } = require("../core/llm-usage");
+const { appendProblemHistoryEntry } = require("../core/problem-history");
+const { resolveOutputDir } = require("../core/run-resolver");
 
-const ROOT_DIR = path.resolve(process.cwd());
+const ROOT_DIR = path.resolve(__dirname, "..");
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const client = createLLMClient();
 
 const ACCEPTANCE_LEVEL_ENUM = ["development", "staging", "production"];
 
@@ -54,13 +55,51 @@ const REVIEW_SCHEMA = {
   }
 };
 
+const MAX_REAL_STATE_SNIPPET_SIZE = Number(
+  process.env.REVIEW_REAL_STATE_SNIPPET_SIZE || 3000
+);
+
+const MAX_LEGACY_TASK_CHARS = Number(
+  process.env.REVIEW_LEGACY_TASK_CHARS || 4000
+);
+
+const MAX_LEGACY_SCAN_CHARS = Number(
+  process.env.REVIEW_LEGACY_SCAN_CHARS || 5000
+);
+
+const MAX_LEGACY_ARCHITECT_CHARS = Number(
+  process.env.REVIEW_LEGACY_ARCHITECT_CHARS || 5000
+);
+
+const MAX_EXECUTOR_OUTPUT_CHARS = Number(
+  process.env.REVIEW_EXECUTOR_OUTPUT_CHARS || 5000
+);
+
 function readIfExists(filePath) {
   if (!fs.existsSync(filePath)) return "";
   return fs.readFileSync(filePath, "utf8");
 }
 
+function readJsonIfExists(filePath, fallback) {
+  if (!fs.existsSync(filePath)) return fallback;
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch (_) {
+    return fallback;
+  }
+}
+
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function compactText(value, maxLength) {
+  const text = String(value || "").trim();
+
+  if (!maxLength || text.length <= maxLength) return text;
+
+  return `${text.slice(0, maxLength - 1).trim()}…`;
 }
 
 function updateAgentMetadata(outputDir, agentMeta) {
@@ -73,6 +112,13 @@ function updateAgentMetadata(outputDir, agentMeta) {
   metadata.agents = {
     ...metadata.agents,
     reviewer: agentMeta
+  };
+
+  metadata.llm = {
+    ...(metadata.llm || {}),
+    review: {
+      model: getModelForStep("review")
+    }
   };
 
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
@@ -110,12 +156,23 @@ function normalizeTaskAcceptanceLevel(token) {
 }
 
 /** @returns {"development"|"staging"|"production"|null} */
-function extractExpectedAcceptanceLevel(task) {
-  const match = task.match(/## Acceptance Level[\s\S]*?\[(x|X)\]\s*(\w+)/);
+function extractExpectedAcceptanceLevelFromTask(task) {
+  const match = String(task || "").match(/## Acceptance Level[\s\S]*?\[(x|X)\]\s*(\w+)/);
 
   if (!match) return null;
 
   return normalizeTaskAcceptanceLevel(match[2]);
+}
+
+function extractExpectedAcceptanceLevelFromRunContext(runContext) {
+  const level =
+    runContext &&
+    runContext.task &&
+    typeof runContext.task.acceptance_level === "string"
+      ? runContext.task.acceptance_level
+      : null;
+
+  return normalizeTaskAcceptanceLevel(level);
 }
 
 function extractSection(content, sectionTitle) {
@@ -138,6 +195,290 @@ function extractArchitectAllowedFiles(architectOutput) {
     .filter(Boolean)
     .filter((line) => !line.startsWith("#"))
     .map((line) => line.replace(/`/g, "").trim());
+}
+
+function normalizeRelativePath(filePath) {
+  return String(filePath || "")
+    .replace(/\\/g, "/")
+    .replace(/^\.?\//, "")
+    .trim();
+}
+
+function assertSafeProjectPath(projectRoot, relativePath) {
+  const normalized = normalizeRelativePath(relativePath);
+
+  if (!normalized) {
+    throw new Error("Caminho vazio não permitido.");
+  }
+
+  if (path.isAbsolute(normalized)) {
+    throw new Error(`Caminho absoluto não permitido: ${relativePath}`);
+  }
+
+  if (
+    normalized.includes("..") ||
+    normalized.includes(".git/") ||
+    normalized.includes("node_modules/")
+  ) {
+    throw new Error(`Caminho inseguro não permitido: ${relativePath}`);
+  }
+
+  const absolutePath = path.resolve(projectRoot, normalized);
+  const resolvedProjectRoot = path.resolve(projectRoot);
+
+  if (
+    absolutePath !== resolvedProjectRoot &&
+    !absolutePath.startsWith(resolvedProjectRoot + path.sep)
+  ) {
+    throw new Error(`Arquivo fora do projeto alvo: ${relativePath}`);
+  }
+
+  return {
+    relativePath: normalized,
+    absolutePath
+  };
+}
+
+function createSnippetAroundNeedle(content, needle, maxSize) {
+  if (!content) return "";
+
+  const safeNeedle = String(needle || "");
+
+  if (!safeNeedle) {
+    return content.slice(0, maxSize);
+  }
+
+  const index = content.indexOf(safeNeedle);
+
+  if (index === -1) {
+    return content.slice(0, maxSize);
+  }
+
+  const half = Math.floor(maxSize / 2);
+  const start = Math.max(0, index - half);
+  const end = Math.min(content.length, index + safeNeedle.length + half);
+
+  return content.slice(start, end);
+}
+
+function getPatchNeedle(change, executorResult) {
+  if (change && change.replace) return change.replace;
+  if (change && change.preview) return change.preview;
+  if (change && change.search) return change.search;
+
+  if (
+    change &&
+    executorResult &&
+    Array.isArray(executorResult.changes)
+  ) {
+    const match = executorResult.changes.find((item) => {
+      return normalizeRelativePath(item.path) === normalizeRelativePath(change.path);
+    });
+
+    if (match && match.replace) return match.replace;
+    if (match && match.search) return match.search;
+  }
+
+  return "";
+}
+
+function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+    return [];
+  }
+
+  return changedFiles.map((change) => {
+    const relPath = normalizeRelativePath(change.path);
+    const safe = assertSafeProjectPath(projectRoot, relPath);
+
+    if (!fs.existsSync(safe.absolutePath)) {
+      return {
+        path: relPath,
+        exists: false,
+        reason: change.reason || "",
+        operation: change.operation || "patch",
+        evidence: "Arquivo não encontrado no estado real do projeto.",
+        snippet: ""
+      };
+    }
+
+    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+    const needle = getPatchNeedle(change, executorResult);
+    const snippet = createSnippetAroundNeedle(
+      content,
+      needle,
+      MAX_REAL_STATE_SNIPPET_SIZE
+    );
+
+    return {
+      path: relPath,
+      exists: true,
+      reason: change.reason || "",
+      operation: change.operation || "patch",
+      before_length: change.before_length,
+      after_length: change.after_length,
+      search_length: change.search_length,
+      replace_length: change.replace_length,
+      evidence: needle
+        ? "Snippet extraído próximo ao trecho alterado."
+        : "Snippet inicial do arquivo extraído por ausência de trecho-alvo.",
+      snippet
+    };
+  });
+}
+
+function getAllowedFilesFromRunContext(runContext) {
+  if (
+    runContext &&
+    runContext.execution_context &&
+    Array.isArray(runContext.execution_context.allowed_files)
+  ) {
+    return runContext.execution_context.allowed_files
+      .map(normalizeRelativePath)
+      .filter(Boolean);
+  }
+
+  if (
+    runContext &&
+    runContext.architect &&
+    Array.isArray(runContext.architect.allowed_files)
+  ) {
+    return runContext.architect.allowed_files
+      .map(normalizeRelativePath)
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function isUsableRunContext(runContext) {
+  if (!runContext || typeof runContext !== "object") return false;
+
+  const allowedFiles = getAllowedFilesFromRunContext(runContext);
+
+  return allowedFiles.length > 0;
+}
+
+function buildFallbackRealState(architectOutput, projectRoot) {
+  const paths = [...new Set(extractArchitectAllowedFiles(architectOutput))];
+
+  return paths.map((relPath) => {
+    const safe = assertSafeProjectPath(projectRoot, relPath);
+
+    if (!fs.existsSync(safe.absolutePath)) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        operation: "(fallback)",
+        evidence:
+          "Arquivo lido do Architect porque executor-changes.json estava vazio.",
+        snippet: ""
+      };
+    }
+
+    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+
+    return {
+      path: safe.relativePath,
+      exists: true,
+      operation: "(fallback)",
+      evidence:
+        "Snippet inicial lido do Architect porque executor-changes.json estava vazio.",
+      snippet: content.slice(0, MAX_REAL_STATE_SNIPPET_SIZE)
+    };
+  });
+}
+
+function buildRunContextFallbackRealState(runContext, projectRoot) {
+  const paths = [...new Set(getAllowedFilesFromRunContext(runContext))];
+
+  return paths.map((relPath) => {
+    const safe = assertSafeProjectPath(projectRoot, relPath);
+
+    if (!fs.existsSync(safe.absolutePath)) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        operation: "(run-context-fallback)",
+        evidence:
+          "Arquivo lido do run-context porque executor-changes.json estava vazio.",
+        snippet: ""
+      };
+    }
+
+    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+
+    return {
+      path: safe.relativePath,
+      exists: true,
+      operation: "(run-context-fallback)",
+      evidence:
+        "Snippet inicial lido do run-context porque executor-changes.json estava vazio.",
+      snippet: content.slice(0, MAX_REAL_STATE_SNIPPET_SIZE)
+    };
+  });
+}
+
+function formatRealStateForPrompt(realState) {
+  if (!Array.isArray(realState) || realState.length === 0) {
+    return "_Nenhum estado real de arquivo disponível._";
+  }
+
+  return realState
+    .map((file) => {
+      return `### ${file.path}
+
+Exists: ${file.exists ? "yes" : "no"}
+Operation: ${file.operation || "(unknown)"}
+Reason: ${file.reason || "(not provided)"}
+Evidence: ${file.evidence || "(not provided)"}
+Before length: ${file.before_length ?? "(unknown)"}
+After length: ${file.after_length ?? "(unknown)"}
+Search length: ${file.search_length ?? "(unknown)"}
+Replace length: ${file.replace_length ?? "(unknown)"}
+
+\`\`\`
+${file.snippet || ""}
+\`\`\``;
+    })
+    .join("\n\n");
+}
+
+function buildCompactRunContextForPrompt(runContext) {
+  return JSON.stringify(
+    {
+      version: runContext.version,
+      run_id: runContext.run_id,
+      project: runContext.project,
+      task: runContext.task,
+      architect: {
+        status: runContext.architect && runContext.architect.status,
+        violations: runContext.architect && runContext.architect.violations,
+        allowed_files: runContext.architect && runContext.architect.allowed_files,
+        plan_summary: runContext.architect && runContext.architect.plan_summary,
+        risks: runContext.architect && runContext.architect.risks,
+        stop_criteria: runContext.architect && runContext.architect.stop_criteria
+      },
+      execution_context: runContext.execution_context
+    },
+    null,
+    2
+  );
+}
+
+function buildLegacyContextForPrompt({ task, scan, architect }) {
+  return JSON.stringify(
+    {
+      mode: "legacy-fallback",
+      warning:
+        "run-context.json ausente ou inválido. Contexto legado foi truncado para reduzir custo.",
+      task_excerpt: compactText(task, MAX_LEGACY_TASK_CHARS),
+      scan_excerpt: compactText(scan, MAX_LEGACY_SCAN_CHARS),
+      architect_excerpt: compactText(architect, MAX_LEGACY_ARCHITECT_CHARS)
+    },
+    null,
+    2
+  );
 }
 
 function validateReviewResult(result, expectedLevel) {
@@ -202,119 +543,146 @@ async function run() {
     throw new Error("Usage: node scripts/review.js <output-dir>");
   }
 
-  const outputDir = path.isAbsolute(outputArg)
-    ? outputArg
-    : path.join(ROOT_DIR, "outputs", outputArg);
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    throw new Error(
+      `Usage: node scripts/review.js <runId> — ${err.message || err}`
+    );
+  }
 
   ensureDir(outputDir);
 
   const reviewerAgentPath = path.join(ROOT_DIR, "agents", "reviewer.md");
-  const { metadata: agentMeta } = loadAgent(reviewerAgentPath);
+  const { content: reviewerAgent, metadata: agentMeta } =
+    loadAgent(reviewerAgentPath);
 
   updateAgentMetadata(outputDir, agentMeta);
 
-  const task = readIfExists(path.join(outputDir, "task.md"));
-  const scan = readIfExists(path.join(outputDir, "scan-output.md"));
-  const architect = readIfExists(path.join(outputDir, "architect-output.md"));
-  const executor = readIfExists(path.join(outputDir, "executor-output.md"));
-
-  const changesPath = path.join(outputDir, "executor-changes.json");
-
-  let changedFiles = [];
-
-  if (fs.existsSync(changesPath)) {
-    changedFiles = JSON.parse(fs.readFileSync(changesPath, "utf-8"));
-  }
-
   const metadataPath = path.join(outputDir, "metadata.json");
   const pipelineMetadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
-
   const projectRoot = pipelineMetadata.projectRoot;
 
-  const pathsFromChanges = Array.isArray(changedFiles)
-    ? [...new Set(changedFiles.map((f) => (f && f.path ? f.path : "")).filter(Boolean))]
-    : [];
+  const runContext = readJsonIfExists(
+    path.join(outputDir, "run-context.json"),
+    null
+  );
 
-  const pathsForRealState =
-    pathsFromChanges.length > 0
-      ? pathsFromChanges
-      : [...new Set(extractArchitectAllowedFiles(architect))];
+  const hasUsableRunContext = isUsableRunContext(runContext);
 
-  const MAX_SIZE = 20000;
+  const executor = compactText(
+    readIfExists(path.join(outputDir, "executor-output.md")),
+    MAX_EXECUTOR_OUTPUT_CHARS
+  );
 
-  const realFilesContent = pathsForRealState.map((relPath) => {
-    const absolutePath = path.join(projectRoot, relPath);
+  const changedFiles = readJsonIfExists(
+    path.join(outputDir, "executor-changes.json"),
+    []
+  );
 
-    if (!fs.existsSync(absolutePath)) {
-      return `### ${relPath}\n\n(Não encontrado)`;
-    }
+  const executorResult = readJsonIfExists(
+    path.join(outputDir, "executor-result.json"),
+    null
+  );
 
-    const content = fs.readFileSync(absolutePath, "utf-8");
+  let task = "";
+  let scan = "";
+  let architect = "";
+  let expectedLevel = null;
+  let promptContext = "";
 
-    const safeContent =
-      content.length > MAX_SIZE ? content.slice(-MAX_SIZE) : content;
+  if (hasUsableRunContext) {
+    expectedLevel = extractExpectedAcceptanceLevelFromRunContext(runContext);
+    promptContext = buildCompactRunContextForPrompt(runContext);
+  } else {
+    task = readIfExists(path.join(outputDir, "task.md"));
+    scan = readIfExists(path.join(outputDir, "scan-output.md"));
+    architect = readIfExists(path.join(outputDir, "architect-output.md"));
+    expectedLevel = extractExpectedAcceptanceLevelFromTask(task);
 
-    return `### ${relPath}
+    promptContext = buildLegacyContextForPrompt({
+      task,
+      scan,
+      architect
+    });
+  }
 
-\`\`\`
-${safeContent}
-\`\`\``;
-  });
-
-  const realStatePreamble =
-    pathsFromChanges.length > 0
-      ? ""
-      : pathsForRealState.length > 0
-        ? "_Arquivos lidos do disco conforme «Arquivos prováveis» do Architect (executor-changes.json estava vazio nesta execução)._\n\n"
-        : "_Nenhum caminho em executor-changes.json e nenhum arquivo em «Arquivos prováveis» do Architect — não há estado de disco para revisar._\n\n";
-
-  const expectedLevel = extractExpectedAcceptanceLevel(task);
+  const realState =
+    Array.isArray(changedFiles) && changedFiles.length > 0
+      ? buildChangedFilesEvidence(changedFiles, executorResult, projectRoot)
+      : hasUsableRunContext
+        ? buildRunContextFallbackRealState(runContext, projectRoot)
+        : buildFallbackRealState(architect, projectRoot);
 
   const levelHint =
     expectedLevel ??
-    "(não detectado na task — preencha acceptance_level conforme o nível avaliado)";
+    "(não detectado na task/run-context — preencha acceptance_level conforme o nível avaliado)";
+
+  const reviewModel = getModelForStep("review");
 
   const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5.5",
+    model: reviewModel,
     input: [
       {
         role: "system",
         content: `
-Você é o Reviewer do Setup Boss.
+${reviewerAgent}
 
 IMPORTANTE:
 - Respeite o Acceptance Level da task: ${levelHint}
 - Se não houver evidência suficiente → REJECTED
 - Se houver bloqueio de produção → BLOCKED
 - Se estiver correto para o nível → APPROVED
+- Nunca aprove sem evidência clara no código.
 
-Nunca aprove sem evidência clara no código.
+Fonte de verdade:
+1. REAL FILE STATE PATCH EVIDENCE
+2. executor-changes.json
+3. executor-result.json
+4. run-context.json
+5. Executor Output
 
-Use como fonte de verdade:
-1. REAL FILE STATE (prioridade máxima)
-2. Executor Output (evidência auxiliar)
-
-Se houver conflito, confie no REAL FILE STATE.
+Não exija arquivo completo.
+Não reanalise arquivo inteiro.
+Não dependa de scan completo nem architect-output completo quando run-context estiver disponível.
+Valide com base no objetivo resumido, critérios de aceite, foco de review, snippets reais do arquivo alterado e evidências do patch aplicado.
+Se o snippet não for suficiente para validar a task, rejeite solicitando evidência mais específica.
         `.trim()
       },
       {
         role: "user",
         content: `
-# TASK
-${task}
+# CONTEXT MODE
 
-# PROJECT SCAN
-${scan}
+${hasUsableRunContext ? "run-context" : "legacy-fallback"}
 
-# ARCHITECT PLAN
-${architect}
+# RUN CONTEXT
+
+\`\`\`json
+${promptContext}
+\`\`\`
 
 # EXECUTOR OUTPUT
-${executor}
 
-# REAL FILE STATE (SOURCE OF TRUTH)
+${executor || "(executor-output.md vazio ou ausente)"}
 
-${realStatePreamble}${realFilesContent.join("\n\n")}
+# EXECUTOR RESULT JSON
+
+\`\`\`json
+${JSON.stringify(executorResult, null, 2)}
+\`\`\`
+
+# EXECUTOR CHANGES JSON
+
+\`\`\`json
+${JSON.stringify(changedFiles, null, 2)}
+\`\`\`
+
+# REAL FILE STATE PATCH EVIDENCE
+
+${formatRealStateForPrompt(realState)}
         `.trim()
       }
     ],
@@ -326,6 +694,13 @@ ${realStatePreamble}${realFilesContent.join("\n\n")}
         schema: REVIEW_SCHEMA
       }
     }
+  });
+
+  recordLLMUsage({
+    outputDir,
+    step: "review",
+    model: reviewModel,
+    usage: response.usage,
   });
 
   const result = JSON.parse(response.output_text);
@@ -353,6 +728,28 @@ ${realStatePreamble}${realFilesContent.join("\n\n")}
       fallback.markdown_report
     );
 
+    appendProblemHistoryEntry({
+      outputDir,
+      projectRoot,
+      step: "review",
+      status: "failed",
+      severity: "medium",
+      type: "unknown_error",
+      title: "Validação do schema do review falhou",
+      summary: fallback.summary,
+      cause: "schema_validation",
+      evidence: validationErrors.map((e) => String(e).slice(0, 800)),
+      files: [],
+      model: reviewModel,
+      usage: response.usage,
+      extra: {
+        acceptance_level: fallback.acceptance_level,
+        requires_correction: fallback.requires_correction,
+        blocking_issues: fallback.blocking_issues || [],
+        warnings: fallback.warnings || [],
+      },
+    });
+
     return;
   }
 
@@ -365,6 +762,35 @@ ${realStatePreamble}${realFilesContent.join("\n\n")}
     path.join(outputDir, "review-output.md"),
     result.markdown_report
   );
+
+  if (result.status === "blocked") {
+    appendProblemHistoryEntry({
+      outputDir,
+      projectRoot,
+      step: "review",
+      status: "blocked",
+      severity: "high",
+      type: "review_blocked",
+      title: "Review bloqueado",
+      summary: result.summary,
+      cause: "review_gate",
+      evidence: [
+        ...(Array.isArray(result.blocking_issues) ? result.blocking_issues : []),
+        ...(Array.isArray(result.warnings) ? result.warnings : []),
+      ]
+        .map((e) => String(e).slice(0, 600))
+        .slice(0, 25),
+      files: [],
+      model: reviewModel,
+      usage: response.usage,
+      extra: {
+        acceptance_level: result.acceptance_level,
+        requires_correction: result.requires_correction,
+        blocking_issues: result.blocking_issues || [],
+        warnings: result.warnings || [],
+      },
+    });
+  }
 }
 
 run().catch((err) => {

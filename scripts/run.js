@@ -3,6 +3,8 @@ const path = require("path");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
 const RunLogger = require("./logger");
+const { appendProblemHistoryEntry } = require("../core/problem-history");
+const { getRunId, writeRunIndex } = require("../core/run-resolver");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 
@@ -55,12 +57,10 @@ function summarizeReviewIssues(review) {
 const SOURCE_OF_TRUTH = {
   globalContextDir: path.join(ROOT_DIR, "context"),
   operationalDocsDir: path.join(ROOT_DIR, "docs"),
-  outputsDir: path.join(ROOT_DIR, "outputs"),
   systemDir: path.join(ROOT_DIR, ".setup-boss"),
   projectSetupDirName: ".setup-boss",
 };
 
-const OUTPUTS_DIR = SOURCE_OF_TRUTH.outputsDir;
 const CACHE_DIR = path.join(SOURCE_OF_TRUTH.systemDir, "cache");
 
 const args = process.argv.slice(2);
@@ -74,7 +74,6 @@ const SCAN_CACHE_TTL_MS = Number(
 
 console.log("[RUN] args:", args);
 console.log("[RUN] ROOT_DIR:", ROOT_DIR);
-console.log("[RUN] OUTPUTS_DIR:", OUTPUTS_DIR);
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -86,26 +85,20 @@ function hashInput(value) {
   return crypto.createHash("md5").update(String(value)).digest("hex");
 }
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60);
-}
-
 function resolveProjectRoot(projectArg) {
   return path.resolve(ROOT_DIR, projectArg);
 }
 
-function getRunId(taskArg, projectArg) {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const projectName = path.basename(resolveProjectRoot(projectArg));
-  const taskName = slugify(path.basename(taskArg, ".md"));
+function getProjectIADir(projectArg) {
+  return path.join(resolveProjectRoot(projectArg), ".IA");
+}
 
-  return `${timestamp}-${projectName}-${taskName}`;
+function getProjectOutputsDir(projectArg) {
+  return path.join(getProjectIADir(projectArg), "outputs");
+}
+
+function getOutputDirForProject(projectArg, runId) {
+  return path.join(getProjectOutputsDir(projectArg), runId);
 }
 
 function getScanCachePath(projectArg) {
@@ -175,10 +168,6 @@ function extractOutputName(stdout) {
   return match[1].trim();
 }
 
-function getOutputDir(outputName) {
-  return path.join(OUTPUTS_DIR, outputName);
-}
-
 function isFreshCache(filePath) {
   if (!fs.existsSync(filePath)) return false;
 
@@ -220,12 +209,16 @@ function readRunLog(outputDir) {
   return readJson(logPath);
 }
 
-function assertOutputInsideOutputs(outputDir) {
+function assertOutputInsideProjectIA(projectRoot, outputDir) {
+  const root = path.resolve(projectRoot);
   const resolved = path.resolve(outputDir);
-  const allowed = path.resolve(OUTPUTS_DIR);
+  const allowedBase = path.join(root, ".IA", "outputs");
 
-  if (resolved !== allowed && !resolved.startsWith(allowed + path.sep)) {
-    throw new Error("Output fora do diretório permitido.");
+  if (
+    resolved !== allowedBase &&
+    !resolved.startsWith(allowedBase + path.sep)
+  ) {
+    throw new Error("Output fora de project/.IA/outputs.");
   }
 }
 
@@ -246,8 +239,8 @@ function assertFlowLimits(logger, outputDir) {
   }
 }
 
-function addGeneratedFile(logger, outputName, relativeFilePath, type) {
-  const normalizedPath = `outputs/${outputName}/${relativeFilePath}`.replace(
+function addGeneratedFile(logger, runId, relativeFilePath, type) {
+  const normalizedPath = `.IA/outputs/${runId}/${relativeFilePath}`.replace(
     /\\/g,
     "/"
   );
@@ -263,7 +256,7 @@ function addGeneratedFile(logger, outputName, relativeFilePath, type) {
 }
 
 async function runExecutorStep(logger, runId) {
-  assertFlowLimits(logger, getOutputDir(runId));
+  assertFlowLimits(logger, logger.outputDir);
 
   const startedAt = logStepStart(
     "Executor",
@@ -286,7 +279,7 @@ async function runExecutorStep(logger, runId) {
 }
 
 async function runReviewStep(logger, runId) {
-  assertFlowLimits(logger, getOutputDir(runId));
+  assertFlowLimits(logger, logger.outputDir);
 
   const startedAt = logStepStart(
     "Review",
@@ -305,7 +298,7 @@ async function runReviewStep(logger, runId) {
 
   logStepEnd("Review", startedAt);
 
-  const reviewPath = path.join(getOutputDir(runId), "review-output.json");
+  const reviewPath = path.join(logger.outputDir, "review-output.json");
 
   if (!fs.existsSync(reviewPath)) {
     throw new Error("review-output.json não foi gerado.");
@@ -348,14 +341,20 @@ async function startFlow(taskArg, projectArg) {
   let logger;
 
   try {
-    ensureDir(OUTPUTS_DIR);
-    ensureDir(CACHE_DIR);
+    const projectRoot = resolveProjectRoot(projectArg);
+    const projectOutputsDir = getProjectOutputsDir(projectArg);
 
-    const runId = getRunId(taskArg, projectArg);
-    const outputDir = getOutputDir(runId);
+    ensureDir(CACHE_DIR);
+    ensureDir(getProjectIADir(projectArg));
+    ensureDir(projectOutputsDir);
+
+    const runId = getRunId(taskArg);
+    const outputDir = getOutputDirForProject(projectArg, runId);
 
     ensureDir(outputDir);
-    assertOutputInsideOutputs(outputDir);
+    assertOutputInsideProjectIA(projectRoot, outputDir);
+
+    writeRunIndex({ runId, projectRoot, outputDir });
 
     const scanCachePath = getScanCachePath(projectArg);
     const canUseScanCache = ENABLE_SCAN_CACHE && isFreshCache(scanCachePath);
@@ -379,6 +378,7 @@ async function startFlow(taskArg, projectArg) {
     }
 
     console.log("[RUN] runId:", runId);
+    console.log("[RUN] projectOutputsDir:", projectOutputsDir);
     console.log("[RUN] outputDir:", outputDir);
     console.log("[RUN] canUseScanCache:", canUseScanCache);
     console.log("[RUN] architectArgs:", architectArgs);
@@ -459,6 +459,28 @@ async function startFlow(taskArg, projectArg) {
           blocking_issues: review.blocking_issues || [],
         });
 
+        appendProblemHistoryEntry({
+          outputDir: logger.outputDir,
+          step: "run",
+          status: "blocked",
+          severity: "high",
+          type: "review_blocked",
+          title: "Pipeline parado por review bloqueado",
+          summary: summarizeReviewIssues(review),
+          cause: "review_stopped_pipeline",
+          evidence: [
+            ...(review.blocking_issues || []).map((x) => String(x).slice(0, 500)),
+            ...(review.warnings || []).map((x) => String(x).slice(0, 500)),
+          ].slice(0, 25),
+          files: [],
+          extra: {
+            acceptance_level: review.acceptance_level,
+            requires_correction: review.requires_correction,
+            blocking_issues: review.blocking_issues || [],
+            warnings: review.warnings || [],
+          },
+        });
+
         logger.finish("partial");
 
         console.log("⛔ Review bloqueado.");
@@ -478,6 +500,25 @@ async function startFlow(taskArg, projectArg) {
         logger.addWarning("Limite máximo de correções atingido.", {
           correction_iterations: logger.data.correction_iterations,
           max_corrections: MAX_CORRECTIONS,
+        });
+
+        appendProblemHistoryEntry({
+          outputDir: logger.outputDir,
+          step: "run",
+          status: "failed",
+          severity: "high",
+          type: "correction_loop_limit",
+          title: "Limite de correções atingido sem aprovação",
+          summary: `MAX_CORRECTIONS (${MAX_CORRECTIONS}) atingido.`,
+          cause: "max_corrections",
+          evidence: [
+            `correction_iterations=${logger.data.correction_iterations}`,
+          ],
+          files: [],
+          extra: {
+            correction_iterations: logger.data.correction_iterations,
+            max_corrections: MAX_CORRECTIONS,
+          },
         });
 
         logger.finish("partial");
@@ -521,6 +562,42 @@ async function startFlow(taskArg, projectArg) {
       await runExecutorStep(logger, runId);
     }
   } catch (error) {
+    if (logger && logger.outputDir) {
+      const msg = String(error.message || error || "");
+
+      if (msg.includes("MAX_TOTAL_STEPS")) {
+        appendProblemHistoryEntry({
+          outputDir: logger.outputDir,
+          step: "run",
+          status: "failed",
+          severity: "critical",
+          type: "max_total_steps_limit",
+          title: "Limite máximo de etapas atingido",
+          summary: msg.slice(0, 800),
+          cause: "max_total_steps",
+          evidence: [msg.slice(0, 1200)],
+          files: [],
+          extra: {
+            max_total_steps: MAX_TOTAL_STEPS,
+          },
+        });
+      } else {
+        appendProblemHistoryEntry({
+          outputDir: logger.outputDir,
+          step: "run",
+          status: "error",
+          severity: "critical",
+          type: "unknown_error",
+          title: "Erro fatal no pipeline",
+          summary: msg.slice(0, 800),
+          cause: "fatal",
+          evidence: [String(error.stack || msg).slice(0, 2000)],
+          files: [],
+          extra: {},
+        });
+      }
+    }
+
     if (logger) {
       logger.failStep(error);
       logger.finish();

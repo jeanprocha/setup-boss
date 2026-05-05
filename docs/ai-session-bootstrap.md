@@ -2,63 +2,63 @@
 
 ## Objetivo
 
-Fornecer contexto suficiente para uma IA entender o Setup Boss em um novo chat.
+Dar contexto mínimo para uma IA trabalhar num novo chat sobre o Setup Boss.
 
-Este arquivo NÃO define uma tarefa a ser executada.  
-Ele apenas carrega contexto.
+Este ficheiro **não** é uma task. Não ordena implementação.
 
 ---
 
-## O que é o Setup Boss
+## O que é
 
-Sistema de execução assistida por IA que:
+Orquestrador de execução sobre um **projeto alvo** com:
 
-- lê contexto e task
-- planeja com Architect (`architect`)
-- **`executor`** aplica alterações reais aos arquivos dentro do whitelist do run
-- **review** avalia usando o código real já persistido (**`REAL FILE STATE`**) antes de só confiar nos trechos relatados textualmente pelo executor (**`executor-output`**)
-- **correction** gera diretrizes curtas objetivas antes de novo **`executor`** na mesma corrida até `approved`/bloqueio/limite
-- **knowledge** persiste decisões quando o ciclo bem-sucedido assim o permite
+- **Scan** — contexto técnico do projeto; pode usar cache (**`ENABLE_SCAN_CACHE`**).
+- **Architect** — plano, enforcement e geração de **`run-context.json`** (resumo da task, critérios de aceite, **`allowed_files`**, foco de review).
+- **Executor** — alterações por **PATCH** no schema atual: **`operation: patch`**, **`search`** (uma ocorrência no ficheiro), **`replace`**; apenas paths em **`allowed_files`**; validação em **`scripts/executor.js`** (não reescreve ficheiro inteiro pela resposta do modelo).
+- **Review** — **`review-output.json`**; quando **`run-context.json`** é válido e utilizado, os prompts evitam colar task/scan/architect completos.
+- **Correction** — instruções curtas para a próxima volta do **executor**.
+- **Knowledge** — apenas após **`approved`**; atualiza knowledge local e pode acionar enriquecimento **`.IA`**.
+
+**Telemetria**: cada corrida pode registar em **`<projeto>/.IA/outputs/<run-id>/metadata.json`** os campos **`llm_usage`** e **`llm_usage_total`** (ver **`core/llm-usage.js`**). Modelos por variáveis **`_*_MODEL`**, fallback **`OPENAI_MODEL`**. O índice **`setup-boss/.setup-boss/runs/<run-id>.json`** liga o run id à pasta de output no projeto alvo.
 
 ---
 
 ## Pipeline atual
 
 ```text
-scan → architect → executor → review → correction → executor → knowledge
+scan → architect → run-context.json
+→ executor (PATCH)
+→ review
+→ [correction → executor → review]*
+→ knowledge (se approved)
 ```
 
-(Repetição de blocos **`executor`** / **`review`** conforme resultado do arquivo `review-output.json` e política do **`scripts/run.js`**.)
+O loop e os limites vêm de **`scripts/run.js`** (`MAX_CORRECTIONS`, `MAX_TOTAL_STEPS`). **`blocked`** no review não segue o mesmo caminho que **`rejected`** com **`requires_correction`**.
 
 ---
 
-## Estado atual
+## Estado atual (código)
 
-- **v2.0.0 · Fase 3** — ciclo automatizado até knowledge sem depender mais de edição manual intermediária orquestrada pela mesma corrida automatizada dentro do projeto alvo
-- **`executor`**: grava arquivo completo válido sempre que há `changes` bem formados vindos da API configurada pelo setup-boss próprio (**não** é um comando humano paralelo dentro do ciclo automatizado típico)
-- **`review`**: sempre que possível, confere primeiro o que está realmente gravado sob `metadata.projectRoot` + paths listados (**executor-changes**) / fallback aos arquivos do architect para não validar apenas um snippet incompleto
-- review estruturado em `review-output.json`
-- correction acoplada ao rerun do executor até limite configurado
-- auditoria longitudinal em **`run-log.json`**
-- **Limites típicos** — `MAX_CORRECTIONS` e `MAX_TOTAL_STEPS`
+- **v2.0.0**: executor por PATCH e **run-context** operacionais.
+- **Redução de contexto**: snippets/truncagens no executor; review com foco em evidência de PATCH e **`review-output.json`** quando há run-context.
+- **Determinístico onde o código impõe**: validação de paths, **`allowed_files`**, aplicação de PATCH (unicidade de **`search`**), schemas JSON nas etapas que os consomem.
 
 ---
 
-## Próxima evolução planejada
+## Evolução prevista (alto nível)
 
-**Fase 4** foca executor híbrido, parsing estruturado e validações automáticas (build/test onde existir infraestrutura). Só iniciar trabalho granular desta linha quando o usuário declarar uma atividade explícita assim.
+Ver **`docs/setup-boss-roadmap.md`** (STEP 4–6: tokens, fallback local/API, executor híbrido).
 
 ---
 
-## Como trabalhar
+## Como trabalhar neste repo
 
-- não assumir arquivos
-- não iniciar implementação sem atividade explícita
-- solicitar arquivos somente quando necessário
-- gerar código/documentos completos quando houver alteração
+- Não assumir ficheiros que não foram abertos ou citados.
+- Não implementar sem uma atividade explícita do utilizador.
+- Para mudanças no sistema, validar comportamento nos **scripts** e **core**, não só neste bootstrap.
 
 ---
 
 ## Instrução ao novo chat
 
-Após ler os arquivos iniciais, apenas confirme entendimento e pergunte qual atividade será executada.
+Depois de ler os docs indicados pelo utilizador, confirmar entendimento em poucas frases e perguntar qual **atividade** segue.

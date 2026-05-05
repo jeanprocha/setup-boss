@@ -1,74 +1,77 @@
-# Setup Boss — Evolução do Projeto
+# Setup Boss — Evolução do projeto
 
 ## Objetivo
 
-Registrar evolução real do sistema por fase.
+Registar a evolução real do sistema por fase, **sem descrever comportamento que não exista no código**.
 
 ---
 
-## Fase 1 — MVP ✅
+## Fase 1 — MVP
 
-- geração de architect
-- geração de prompt orientado para operador
-- execução manual das alterações
+- **Architect** e plano textual
+- Task e prompts para **aplicação manual** das alterações no projeto alvo
+- **Sem** executor automático integrado ao pipeline
 
 ---
 
-## Fase 2 — Semi-automação ✅
+## Fase 2 — Semi-automação
 
-- review JSON-first (`review-output.json`)
-- loop de correction
-- run-log.json
-- controle de limites
-- cache de scan
-- guardrails
-- knowledge estruturado
+- **Review** com decisão em **`review-output.json`**
+- Loop **correction** com instruções para a volta seguinte
+- **`run-log.json`** e limites (**`MAX_CORRECTIONS`**, **`MAX_TOTAL_STEPS`**)
+- Cache de scan (**`ENABLE_SCAN_CACHE`**)
+- Knowledge estruturado por projeto (**`.setup-boss/knowledge-base.md`**)
 
-Pipeline **nessa época**:
+Pipeline típico **antes** do executor integrado:
 
 ```text
-scan → architect → (execução manual das mudanças) → review → correction → knowledge
+scan → architect → (alterações manuais no repo) → review → correction → …
 ```
 
 ---
 
-## Fase 3 — Executor local ✅ (CONCLUÍDA · v2.0.0)
+## Fase 3 — Executor local (**v2.0.0**, estado atual)
 
-Implementado:
+Inclui o comportamento **atual** do repositório:
 
-- **`executor`** automático: lê escopo permitido pelo architect e grava alterações nos arquivos reais do projeto
-- **pipeline completo**: scan → architect → executor → review → correction → executor (reentrada até aprovação ou limite) → knowledge
-- **review com estado real**: inclui trechos/carregamento do código no disco como fonte de verdade (complementando o `executor-output`)
-- **correction loop funcional**: instruções de correção são reaplicadas pelo `executor`
-- **knowledge persistente** no projeto-alvo / contexto
-
-Pipeline **atual**:
+- **Executor automático** com resposta estruturada **PATCH** (`operation: patch`): **`search`** com uma única ocorrência no ficheiro, **`replace`**; validação e escrita em **`scripts/executor.js`**
+- **`run-context.json`** gerado pelo **architect** (`buildRunContext` em **`scripts/architect.js`**) com **`allowed_files`**, resumo da task, critérios e foco de review
+- **Pipeline completo** orquestrado por **`npm run run`**:
 
 ```text
-scan → architect → executor → review → correction → executor → knowledge
+scan → architect → run-context.json
+→ executor (PATCH)
+→ review
+→ [correction → executor → review]*
+→ knowledge
 ```
 
----
-
-## Fase 4 — Executor híbrido e validação forte ⏳
-
-- combinação de patches determinísticos e geração assistida pelo LLM
-- parsing estruturado onde o stack permitir
-- integração opcional com build/tests no pipeline de validação após executor
+- **Review** com uso preferencial de **`run-context.json`** quando válido, reduzindo dependência de colar task/scan/architect completos
+- Memória **`.IA`** e knowledge no projeto alvo
+- **Modelos por etapa** (`core/llm-client.js`)
+- **Métricas**: **`core/llm-usage.js`**; **`metadata.json`** com **`llm_usage`** e **`llm_usage_total`**; inclui etapas auxiliares (**`ensure_ia`**, **`semantic_ia`**) quando disparadas no fluxo
 
 ---
 
-## Fase 5 — Sistema autônomo ⏳
+## Fase 4 — Executor híbrido e validação mais forte
 
-- sistema propõe melhorias
-- execução contínua com salvaguardas
+- Mais caminhos determinísticos onde o projeto permitir
+- Parsing estruturado onde couber
+- Validação opcional (build/test) com infraestrutura disponível
+
+---
+
+## Fase 5 — Sistema autónomo (aspiracional)
+
+- Propostas com gates humanos organizacionais
+- Execução contínua com salvaguardas
 
 ---
 
 ## Estado atual
 
 ```text
-Fase 3 concluída (v2.0.0).
-Próximo foco declarado na documentação do roadmap: Fase 4.
+Fase 3 concluída nas funcionalidades principais (v2.0.0):
+run-context, PATCH, métricas LLM (llm_usage), redução de contexto entre etapas.
+Próximo foco: roadmap STEP 4–6.
 ```
-

@@ -1,52 +1,58 @@
 # Setup Boss — Roadmap
 
-## Estado atual (v2.0.0 · Fase 3)
+## Pipeline em produção
 
 ```text
-scan → architect → executor → review → correction → executor → knowledge
+scan → architect → run-context.json
+→ executor (PATCH)
+→ review
+→ [correction → executor → review]*
+→ knowledge
 ```
 
-O pipeline em produção automatiza até o registrar de knowledge quando o resultado chega ao estado `approved` no review. Execuções que precisarem de novo intento repetem **`correction` → `executor` → `review`** até aceite ou limites configurados no run (`MAX_CORRECTIONS`, etc.).
+O comando **`npm run run`** automatiza até **knowledge** quando o review fica **`approved`**. Se o review pedir correção, o ciclo **correction → executor → review** repete até aprovação, **`blocked`**, ou limites (**`MAX_CORRECTIONS`**, **`MAX_TOTAL_STEPS`**) em **`scripts/run.js`**.
 
 ---
 
-## Próximo objetivo (Fase 4)
+## Concluído (estado atual do código)
 
-- **executor híbrido**: onde for seguro, aplicar edições deterministicamente (estruturas, slots, marcadores estáveis); manter IA para regiões ainda fracamente estruturadas
-- **parsing estruturado**: análise mais rígida de HTML/arquivos de markup (e extensível a outras gramáticas quando o projeto assim o demandar)
-- **validação via build ou teste**: integração opcional de comandos automatizados de verificação adicionando um sinal forte de correção sintática/execução
-
----
-
-## O que o executor faz hoje (Fase 3)
-
-Componente já integrado ao run que:
-
-- lê prompt + arquivos permitidos pelo architect
-- gera payloads `write_file` que substituem o conteúdo dos arquivos autorizados
-- respeita escopo declarado pela lista «Arquivos prováveis» / seguranças de caminho já existentes
-- grava evidência operacional através de **`executor-output.md`** e **`executor-changes.json`** consumidos pela etapa seguinte (**review**) e tooling humano opcional
+- **`run-context.json`** — gerado pelo architect; inclui task resumida, **`allowed_files`**, critérios de aceite, **`review_focus`**, estado do architect (**`scripts/architect.js`**).
+- **Executor por PATCH** — schema com **`operation: patch`**; **`search`** deve ocorrer **exactamente uma vez** no ficheiro alvo; escopo limitado a **`allowed_files`** (**`scripts/executor.js`**).
+- **Review JSON-first** — **`review-output.json`**; uso de **run-context** quando válido para prompts mais curtos (**scripts/review.js** e leitura de artefactos).
+- **Modelos por etapa** — **`core/llm-client.js`**, variáveis **`ARCHITECT_MODEL`**, **`EXECUTOR_MODEL`**, etc., fallback **`OPENAI_MODEL`**.
+- **Tracking** — **`core/llm-usage.js`**; **`metadata.json`** com **`llm_usage`** (por chave de etapa) e **`llm_usage_total`** em **`<projeto>/.IA/outputs/<run>/`**; inclui **`scan`**, **`ensure_ia`**, **`semantic_ia`** quando aplicável ao fluxo.
 
 ---
 
-## Regras
+## Próximos passos declarados
 
-- preservar invariantes públicas do fluxo atual (consumidores de JSON de saída / scripts operacionais já publicados onde couber)
-- review continua porta de validação obrigatória antes de mover knowledge aceito quando o ciclo assim exigir na configuração de release interna deste projeto
-- jamais ampliar write automaticamente para caminhos fora do whitelist do run corrente
+### STEP 4 — Optimização agressiva de tokens
+
+- Reduzir texto redundante entre etapas dentro do que o contrato dos artefactos permitir.
+- Políticas de truncagem e resumos alinhadas aos consumidores existentes.
+
+### STEP 5 — Fallback inteligente (local/API)
+
+- Caminhos locais determinísticos onde fizer sentido.
+- API só onde o ganho compensar custo e complexidade.
+
+### STEP 6 — Executor híbrido (mais determinístico)
+
+- Mais edições guiadas por estrutura (marcadores, slots), mantendo PATCH onde for necessário.
+- Parsing mais rígido quando o stack do projeto permitir.
 
 ---
 
-## Critério de sucesso
+## Regras de evolução
 
-Concluído na Fase 3 (v2.0.0):
+- Manter invariantes dos consumidores de artefactos (**`review-output.json`**, **`executor-changes.json`**, etc.) salvo migração explícita.
+- Review continua no caminho padrão antes de knowledge com aceitação.
+- Não expandir escrita automática para fora do whitelist da corrida (**`allowed_files`**).
 
-- executor automático aplica alterações reais no projeto alvo dentro do escopo do architect
-- review valida usando o estado persistido dos arquivos e reduz falsos negativos só por snippet de log
-- execution end-to-end automatizada na orquestração padrão até `knowledge`, sem passo manual paralelo dentro do mesmo run quando o ciclo automatizado completa sem bloqueios
+---
 
-Próximos alvos (Fase 4):
+## Critério de sucesso (contínuo)
 
-- executor híbrido (mais edits determinísticos)
-- parsing estruturado onde o stack permitir
-- sinal adicional de correção via build/testes quando configurado
+- Execução end-to-end até knowledge **sem passo manual de edição** no mesmo run quando não há bloqueio.
+- Custos e tokens observáveis por etapa nos artefactos da corrida.
+- Menos tokens por run mantendo critérios de aceite atendidos em tasks válidas.

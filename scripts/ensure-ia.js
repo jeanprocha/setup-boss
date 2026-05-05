@@ -3,6 +3,8 @@ const path = require("path");
 require("dotenv").config();
 
 const OpenAI = require("openai");
+const { getModelForStep } = require("../core/llm-client");
+const { recordLLMUsage } = require("../core/llm-usage");
 
 const IA_DIR_NAME = ".IA";
 
@@ -533,8 +535,10 @@ Não invente fatos sem evidência.
 Quando algo não estiver confirmado, escreva "A confirmar".
 `;
 
+  const bootstrapModel = getModelForStep("ensure_ia");
+
   const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5.5",
+    model: bootstrapModel,
     input: prompt,
     text: {
       format: {
@@ -544,6 +548,12 @@ Quando algo não estiver confirmado, escreva "A confirmar".
         schema: IA_SCHEMA,
       },
     },
+  });
+
+  recordLLMUsage({
+    step: "ensure_ia",
+    model: bootstrapModel,
+    usage: response.usage,
   });
 
   return JSON.parse(response.output_text);
@@ -716,7 +726,7 @@ function analyzeIAQuality(projectRoot) {
 }
 
 /**
- * Grava apenas `outputs/<run-id>/ia-diagnostics.json` — não altera `.IA`.
+ * Grava apenas `<projeto>/.IA/outputs/<run-id>/ia-diagnostics.json` — não altera `.IA` além do permitido.
  */
 function writeIADiagnostics(projectRoot, outputDir) {
   if (!outputDir) {
@@ -1507,6 +1517,7 @@ async function generateSemanticLearningEnrichment(
   projectScan,
   approvedRunEvidence,
   factsDigest,
+  llmUsageOutputDir,
 ) {
   if (!process.env.OPENAI_API_KEY) {
     return null;
@@ -1586,8 +1597,10 @@ ${semanticList}
 JSON válido segundo o schema solicitado apenas com esses paths.
 `;
 
+  const semanticModel = getModelForStep("semantic_ia");
+
   const response = await client.responses.create({
-    model: process.env.OPENAI_MODEL || "gpt-5.5",
+    model: semanticModel,
     input: prompt,
     text: {
       format: {
@@ -1598,6 +1611,15 @@ JSON válido segundo o schema solicitado apenas com esses paths.
       },
     },
   });
+
+  if (llmUsageOutputDir) {
+    recordLLMUsage({
+      outputDir: llmUsageOutputDir,
+      step: "semantic_ia",
+      model: semanticModel,
+      usage: response.usage,
+    });
+  }
 
   return JSON.parse(response.output_text);
 }
@@ -1705,6 +1727,7 @@ ${changesText || "(vazio)"}
       scanForEnrichment,
       approvedRunEvidence,
       factsDigest,
+      resolvedOut,
     );
   } catch (error) {
     console.log("⚠️ enrichIAAfterApprovedRun: falha na IA semântica — baseline FACTS mantido.");

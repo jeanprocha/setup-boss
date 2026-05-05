@@ -732,6 +732,52 @@ Verifica-se confirmando que só `tmp/setup-boss-diagnostic.md` foi alterado e qu
 
 2026-05-05
 
+## Decision / Update
+
+### Context
+
+O fluxo de diagnóstico deve manter a alteração do projeto alvo estritamente em `tmp/setup-boss-diagnostic.md`.
+
+### Decision
+
+A run fica limitada a um único ficheiro de diagnóstico com uma linha curta contendo marcador e timestamp ISO.
+
+### Reason
+
+Isso cumpre o objetivo de gerar o artefacto mínimo sem tocar em `scripts/`, `core/`, `agents/` ou `docs/`.
+
+### Impact
+
+Reduz o risco de alterações colaterais e facilita a validação por comparação direta do ficheiro alvo.
+
+### Validation
+
+Verifica-se pela presença de `tmp/setup-boss-diagnostic.md` com timestamp ISO e pela ausência de alterações fora desse caminho.
+
+### Date
+
+2026-05-05
+
+## Decision / Update
+
+### Context
+A run de diagnóstico depende de pré-criar `tmp/setup-boss-diagnostic.md` porque o executor aplica patch apenas em ficheiros já existentes.
+
+### Decision
+A alteração relevante deve ficar limitada a `tmp/setup-boss-diagnostic.md`, com conteúdo curto contendo `prompt-sizes` ou `diagnostic` e timestamp ISO 8601.
+
+### Reason
+Isso evita bloqueio por caminho inexistente e mantém o escopo limpo, sem tocar em `scripts/`, `core/`, `agents/` ou `docs/`.
+
+### Impact
+O fluxo passa a ser validável por presença do ficheiro alvo e pela ausência de alterações fora de `tmp/`, reduzindo risco de false positives no review.
+
+### Validation
+Verifica-se por inspeção do diff e do conteúdo final de `tmp/setup-boss-diagnostic.md`, confirmando que não houve alterações fora do caminho permitido.
+
+### Date
+2026-05-05
+
 ## PROJECT LOCAL TRUTH: project-scan.md
 
 ```markdown
@@ -739,14 +785,14 @@ Verifica-se confirmando que só `tmp/setup-boss-diagnostic.md` foi alterado e qu
 
 ## Summary
 
-Repositório Node.js do Setup Boss, um orquestrador de pipeline assistido por IA para scan, planeamento, execução por patches, revisão e consolidação de conhecimento local. O foco principal é infraestrutura de automação, não uma aplicação de negócio tradicional.
+Repositório Node.js do Setup Boss, um orquestrador de pipeline assistido por IA para scan, planeamento, execução por patches, revisão e consolidação de conhecimento local. O foco observado é infraestrutura de automação e operação do pipeline, não uma aplicação de negócio tradicional.
 
 ## Stack
 
 - Frontend: Não identificado.
 - Backend: Node.js.
 - Database: Não identificado.
-- Infra: Scripts Node.js; artefactos locais em `.setup-boss/`, `.IA/` e `outputs/`; uso de OpenAI via API.
+- Infra: Scripts Node.js; uso de OpenAI via API; artefactos locais em `.setup-boss/`, `.IA/` e `outputs/`.
 - Package manager: npm.
 - Build tool: Não identificado.
 
@@ -800,7 +846,7 @@ Comandos encontrados em `package.json`:
 - migrations
   - Não identificado.
 
-Observação: o `package.json` confirma os scripts, mas não explicita argumentos esperados por cada um.
+Observação: o `package.json` confirma os scripts, mas não explicita os argumentos esperados por cada um.
 
 ## Database
 
@@ -1363,9 +1409,77 @@ C:\Users\pierr\Documents\automacao\setup-boss
 .IA\outputs\20260505-105442-diagnostico-prompt-sizes\review-output.md
 .IA\outputs\20260505-105442-diagnostico-prompt-
 
-[truncated file tree: original_chars=31546 max_chars=12000]
+[truncated file tree: original_chars=30892 max_chars=12000]
 
--40-563Z-landing-sofas-exemplo\architect-input.md
+nding-sofas-exemplo\architect-input.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-changes.json
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-input.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-output.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-result.json
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\correction-instructions.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-changes.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-input.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-output.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-result.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\review-output.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\review-output.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\correction-instructions.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-changes.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-input.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-output.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-result.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\review-output.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\review-output.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo/
+outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo/
+outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo/
+outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-input.md
 outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-output.md
 outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-validation.json
 outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\correction-instructions.md
@@ -1382,69 +1496,6 @@ outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\scan-input.md
 outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\scan-output.md
 outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\task.md
 outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo/
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\architect-output.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\architect-validation.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\correction-instructions.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\executor-changes.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\executor-input.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\executor-output.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\executor-result.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\metadata.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\review-output.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\review-output.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo/
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\architect-output.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\architect-validation.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\executor-changes.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\executor-input.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\executor-output.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\executor-result.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\knowledge-update.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\metadata.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\review-output.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\review-output.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T17-46-18-390Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section/
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\architect-input.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\architect-output.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\architect-validation.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\executor-changes.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\executor-input.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\executor-output.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\executor-result.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\knowledge-update.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\metadata.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\review-output.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\review-output.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\run-log.json
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\scan-input.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\scan-output.md
-outputs\2026-05-02T17-53-11-373Z-landing-sofas-01-add-section\task.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product/
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\architect-input.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\architect-output.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\architect-validation.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\correction-instructions.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\executor-changes.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\executor-input.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\executor-output.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\executor-result.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\metadata.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\review-output.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\review-output.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\run-log.json
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\scan-input.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\scan-output.md
-outputs\2026-05-02T18-01-52-434Z-landing-sofas-02-add-product\task.md
 
 ## IMPORTANT FILE CONTENT
 
@@ -1492,4 +1543,22 @@ GPT_5_4_MINI_OUTPUT_USD_PER_1M=
 MAX_CORRECTIONS=3
 MAX_TOTAL_STEPS=20
 ENABLE_SCAN_CACHE=true
+
+FORCE_SCAN=
+# Se definido (ex.: 1 ou true), força scan na corrida ignorando cache do run.js (alternativa a passar --force-scan ao node scripts/run.js).
+
+SCAN_FILE_TREE_MAX_CHARS=12000
+# Teto de caracteres da árvore de ficheiros no prompt do scan; <= 0 desativa truncagem.
+
+SCAN_OPERATIONAL_DOCS_MAX_CHARS=12000
+# Teto de caracteres dos docs operacionais (setup-boss/docs) no prompt do scan; <= 0 desativa.
+
+SCAN_GLOBAL_CONTEXT_MAX_CHARS=6000
+# Teto de caracteres do contexto global (setup-boss/context) no prompt do scan; <= 0 desativa.
+
+ARCHITECT_PROJECT_SCAN_MAX_CHARS=8000
+# Teto do texto PROJECT SCAN (project-scan.md) no prompt do architect; <= 0 sem truncagem.
+
+IA_CONTEXT_AI_RULES_MAX_CHARS=2000
+# Teto só para .IA/10-ai-rules.md ao montar PROJECT IA CONTEXT (collectIAContext); <= 0 sem truncagem.
 

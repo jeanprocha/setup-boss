@@ -308,6 +308,33 @@ function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot) {
       };
     }
 
+    let st;
+
+    try {
+      st = fs.statSync(safe.absolutePath);
+    } catch (_) {
+      return {
+        path: relPath,
+        exists: false,
+        reason: change.reason || "",
+        operation: change.operation || "patch",
+        evidence: "Não foi possível ler o estado do caminho no projeto.",
+        snippet: ""
+      };
+    }
+
+    if (st.isDirectory()) {
+      return {
+        path: relPath,
+        exists: true,
+        reason: change.reason || "",
+        operation: change.operation || "patch",
+        evidence:
+          "Caminho é diretório — não é ficheiro aplicável a PATCH / estado real.",
+        snippet: "[blocked: path is a directory]",
+      };
+    }
+
     const content = fs.readFileSync(safe.absolutePath, "utf-8");
     const needle = getPatchNeedle(change, executorResult);
     const snippet = createSnippetAroundNeedle(
@@ -382,6 +409,31 @@ function buildFallbackRealState(architectOutput, projectRoot) {
       };
     }
 
+    let stFallback;
+
+    try {
+      stFallback = fs.statSync(safe.absolutePath);
+    } catch (_) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        operation: "(fallback)",
+        evidence: "Não foi possível ler o caminho indicado pelo Architect.",
+        snippet: ""
+      };
+    }
+
+    if (stFallback.isDirectory()) {
+      return {
+        path: safe.relativePath,
+        exists: true,
+        operation: "(fallback)",
+        evidence:
+          "Caminho é diretório — Architect não deve listar pastas em Arquivos prováveis.",
+        snippet: "[blocked: path is a directory]",
+      };
+    }
+
     const content = fs.readFileSync(safe.absolutePath, "utf-8");
 
     return {
@@ -409,6 +461,31 @@ function buildRunContextFallbackRealState(runContext, projectRoot) {
         evidence:
           "Arquivo lido do run-context porque executor-changes.json estava vazio.",
         snippet: ""
+      };
+    }
+
+    let stRc;
+
+    try {
+      stRc = fs.statSync(safe.absolutePath);
+    } catch (_) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        operation: "(run-context-fallback)",
+        evidence: "Não foi possível ler o caminho indicado pelo run-context.",
+        snippet: ""
+      };
+    }
+
+    if (stRc.isDirectory()) {
+      return {
+        path: safe.relativePath,
+        exists: true,
+        operation: "(run-context-fallback)",
+        evidence:
+          "Caminho é diretório — allowed_files deve listar apenas ficheiros concretos.",
+        snippet: "[blocked: path is a directory]",
       };
     }
 

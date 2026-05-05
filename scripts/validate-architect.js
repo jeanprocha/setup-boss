@@ -46,6 +46,41 @@ function extractSection(content, sectionTitle) {
   return content.slice(bodyStart, nextIdx).trim();
 }
 
+function collectArchitectConcreteFileViolations(filesSection) {
+  const violations = [];
+  const lines = String(filesSection || "").split("\n");
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const item = line
+      .replace(/^[-*]\s*/, "")
+      .replace(/^`/, "")
+      .replace(/`$/, "")
+      .trim();
+
+    if (!item) continue;
+
+    const posixPath = item.replace(/\\/g, "/");
+
+    if (item.endsWith("\\") || posixPath.endsWith("/")) {
+      violations.push(
+        `Arquivos prováveis deve conter apenas arquivos concretos, não diretórios: ${item}`
+      );
+      continue;
+    }
+
+    if (posixPath === ".IA/outputs/" || posixPath === ".setup-boss/runs/") {
+      violations.push(
+        `Arquivos prováveis deve conter apenas arquivos concretos, não diretórios: ${item}`
+      );
+    }
+  }
+
+  return violations;
+}
+
 function validateArchitectOutput(content) {
   console.log("[VALIDATE_ARCHITECT] start");
 
@@ -61,6 +96,8 @@ function validateArchitectOutput(content) {
 
   if (!filesSection.trim()) {
     violations.push("Seção Arquivos prováveis está vazia.");
+  } else {
+    violations.push(...collectArchitectConcreteFileViolations(filesSection));
   }
 
   console.log("[VALIDATE_ARCHITECT] end");
@@ -119,4 +156,5 @@ if (require.main === module) {
 
 module.exports = {
   validateArchitectOutput,
+  collectArchitectConcreteFileViolations,
 };

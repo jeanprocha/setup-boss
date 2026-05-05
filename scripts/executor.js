@@ -219,13 +219,49 @@ function readAllowedProjectFiles(projectRoot, allowedFiles) {
   return allowedFiles.map((filePath) => {
     const safe = assertSafeProjectPath(projectRoot, filePath);
     const exists = fs.existsSync(safe.absolutePath);
-    const content = exists ? fs.readFileSync(safe.absolutePath, "utf-8") : "";
+
+    if (!exists) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        is_directory: false,
+        size: 0,
+        snippet: "",
+      };
+    }
+
+    let stat;
+
+    try {
+      stat = fs.statSync(safe.absolutePath);
+    } catch (_) {
+      return {
+        path: safe.relativePath,
+        exists: false,
+        is_directory: false,
+        size: 0,
+        snippet: "",
+      };
+    }
+
+    if (stat.isDirectory()) {
+      return {
+        path: safe.relativePath,
+        exists: true,
+        is_directory: true,
+        size: 0,
+        snippet: "[blocked: allowed_files entry is a directory]",
+      };
+    }
+
+    const content = fs.readFileSync(safe.absolutePath, "utf-8");
 
     return {
       path: safe.relativePath,
-      exists,
+      exists: true,
+      is_directory: false,
       size: content.length,
-      snippet: createContextSnippet(content)
+      snippet: createContextSnippet(content),
     };
   });
 }
@@ -728,6 +764,58 @@ async function main() {
   const correction = readIfExists(path.join(outputDir, "correction-instructions.md"));
   const projectFiles = readAllowedProjectFiles(projectRoot, allowedFiles);
 
+  const directoryAllowedPaths = projectFiles
+    .filter((f) => f.is_directory)
+    .map((f) => f.path);
+
+  if (directoryAllowedPaths.length > 0) {
+    const blocked = {
+      status: "blocked",
+      summary: "Allowed files contains directory entries.",
+      blocked_reason: "allowed_files must contain concrete files only.",
+      evidence: directoryAllowedPaths.map(
+        (p) => `Directory in allowed_files: ${p}`
+      ),
+      changes: [],
+    };
+
+    writeBlockedOutput(outputDir, blocked);
+
+    const skipNote =
+      `# Executor Input\n\n` +
+      `Skipped LLM: allowed_files contains directory paths (concrete files only).\n\n` +
+      directoryAllowedPaths.map((p) => `- ${p}`).join("\n");
+
+    fs.writeFileSync(path.join(outputDir, "executor-input.md"), skipNote, "utf-8");
+
+    writePromptSizeRecord(outputDir, "executor", {
+      total_prompt_chars: skipNote.length,
+      user_chars: skipNote.length,
+      blocks: {
+        agent: 0,
+      },
+    });
+
+    logExecutorProblem({
+      outputDir,
+      metadata,
+      projectRoot,
+      hasUsableRunContext,
+      model: getModelForStep("executor"),
+      usage: null,
+      result: blocked,
+      type: "executor_blocked",
+      cause: "allowed_files_directories",
+      title: "allowed_files contém diretórios",
+      summary: blocked.summary,
+      severity: "high",
+      files: directoryAllowedPaths,
+    });
+
+    console.log("⛔ Executor bloqueado: allowed_files contém diretórios.");
+    return;
+  }
+
   const agentPath = path.join(ROOT_DIR, "agents", "executor.md");
   const { content: agent, metadata: agentMeta } = loadAgent(agentPath);
 
@@ -771,9 +859,10 @@ Você NÃO deve retornar arquivo completo.
 
 ${projectFiles
   .map((file) => {
+    const dirHint = file.is_directory ? "\nDirectory: yes" : "";
     return `### ${file.path}
 
-Exists: ${file.exists ? "yes" : "no"}
+Exists: ${file.exists ? "yes" : "no"}${dirHint}
 Size: ${file.size} chars
 
 \`\`\`

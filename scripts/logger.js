@@ -49,6 +49,7 @@ class RunLogger {
         scan_used: false,
         scan_cache_path: null,
       },
+      pipeline_metrics_baseline: null,
     };
   }
 
@@ -102,7 +103,35 @@ class RunLogger {
       };
     }
 
+    if (!("pipeline_metrics_baseline" in log)) {
+      log.pipeline_metrics_baseline = null;
+    }
+
+    if (
+      log.pipeline_metrics_baseline != null &&
+      typeof log.pipeline_metrics_baseline !== "object"
+    ) {
+      log.pipeline_metrics_baseline = null;
+    }
+
     return log;
+  }
+
+  setPipelineMetricsBaseline(patch) {
+    if (!patch || typeof patch !== "object") return;
+
+    const prior =
+      this.data.pipeline_metrics_baseline &&
+      typeof this.data.pipeline_metrics_baseline === "object"
+        ? this.data.pipeline_metrics_baseline
+        : {};
+
+    this.data.pipeline_metrics_baseline = {
+      ...prior,
+      ...patch,
+    };
+
+    this.save();
   }
 
   loadExistingLog() {
@@ -280,9 +309,20 @@ class RunLogger {
     this.save();
   }
 
-  setCacheInfo({ scanUsed, scanCachePath }) {
+  setCacheInfo({
+    scanUsed,
+    scanCachePath,
+    scanFingerprint,
+    scan_cache_reason,
+  } = {}) {
     this.data.cache.scan_used = Boolean(scanUsed);
     this.data.cache.scan_cache_path = scanCachePath || null;
+    if (scanFingerprint != null) {
+      this.data.cache.scan_fingerprint = String(scanFingerprint);
+    }
+    if (scan_cache_reason != null) {
+      this.data.cache.scan_cache_reason = String(scan_cache_reason);
+    }
     this.save();
   }
 

@@ -1,0 +1,107 @@
+/**
+ * Constantes — Governance Runtime Core (report + enforcement opcional v1).
+ */
+
+const GOVERNANCE_RUNTIME_SCHEMA_VERSION = 1;
+
+const GOVERNANCE_RUNTIME_MANIFEST_FILENAME = "governance-runtime.json";
+
+const GOVERNANCE_RUNTIME_TELEMETRY_FILENAME = "governance-runtime-telemetry.ndjson";
+
+/** Relatório só leitura — Fase 4.7.5 (diagnostics / CLI). */
+const GOVERNANCE_DIAGNOSTICS_FILENAME = "governance-diagnostics.json";
+
+const GOVERNANCE_DIAGNOSTICS_SCHEMA_VERSION = 1;
+
+/** Modo default: só agrega/regista (sem abort por governance runtime). */
+const GOVERNANCE_RUNTIME_MODE_REPORT = "report";
+
+/** Modo enforcement controlado (feature-flag via env/policy/profile). */
+const GOVERNANCE_RUNTIME_MODE_ENFORCE = "enforce";
+
+/** Código de terminal para bloqueio por governance (validation critical v1). */
+const GOVERNANCE_PIPELINE_BLOCKED_CODE = "GOVERNANCE_PIPELINE_BLOCKED";
+
+const GOVERNANCE_RUNTIME_LIFECYCLE = Object.freeze({
+  PENDING: "PENDING",
+  PASSED: "PASSED",
+  WARNING: "WARNING",
+  BLOCKED: "BLOCKED",
+  AWAITING_APPROVAL: "AWAITING_APPROVAL",
+});
+
+const GOVERNANCE_APPROVAL_MANIFEST_FILENAME = "governance-approval.json";
+
+const GOVERNANCE_APPROVAL_SCHEMA_VERSION = 1;
+
+const GOVERNANCE_APPROVAL_STATUS = Object.freeze({
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  OVERRIDDEN: "OVERRIDDEN",
+  /** Approval resolvido deixou de corresponder ao contexto atual (fingerprint/manifestos). */
+  STALE: "STALE",
+  /** Substituído ou invalidado explicitamente; não reutilizar. */
+  INVALIDATED: "INVALIDATED",
+});
+
+/** Resolução para falha crítica de validation em modo enforce. */
+const VALIDATION_CRITICAL_RESOLUTION_BLOCK = "block";
+const VALIDATION_CRITICAL_RESOLUTION_APPROVAL = "approval";
+
+const GOVERNANCE_HITL_EVALUATION_CODES = Object.freeze([
+  "VALIDATION_VALIDATOR_ERROR",
+  "VALIDATION_GOVERNANCE_SEVERITY",
+]);
+
+const GOVERNANCE_AWAITING_APPROVAL_CODE = "GOVERNANCE_AWAITING_APPROVAL";
+
+/** Bloqueio determinístico em resume (Fase 4.7.4). */
+const GOVERNANCE_RESUME_BLOCKED_CODE = "GOVERNANCE_RESUME_BLOCKED";
+
+/** Bloqueio determinístico em replay (Fase 4.7.4). */
+const GOVERNANCE_REPLAY_BLOCKED_CODE = "GOVERNANCE_REPLAY_BLOCKED";
+
+/** Approval STALE — não retomar/reexecutar sem novo ciclo. */
+const GOVERNANCE_STALE_APPROVAL_CODE = "GOVERNANCE_STALE_APPROVAL";
+
+/** Approval INVALIDATED ou governance substituído. */
+const GOVERNANCE_INVALIDATED_GOVERNANCE_CODE = "GOVERNANCE_INVALIDATED_GOVERNANCE";
+
+/** Incoerência entre governance-runtime.json e governance-approval.json. */
+const GOVERNANCE_LIFECYCLE_INVALID_CODE = "GOVERNANCE_LIFECYCLE_INVALID";
+
+/** Fingerprint de continuidade diverge do approval resolvido. */
+const GOVERNANCE_CONTINUITY_MISMATCH_CODE = "GOVERNANCE_CONTINUITY_MISMATCH";
+
+const GOVERNANCE_HOOK_PHASE = Object.freeze({
+  POST_RECONCILIATION: "post_reconciliation",
+  POST_VALIDATION: "post_validation",
+  POST_RISK: "post_risk",
+});
+
+module.exports = {
+  GOVERNANCE_RUNTIME_SCHEMA_VERSION,
+  GOVERNANCE_RUNTIME_MANIFEST_FILENAME,
+  GOVERNANCE_RUNTIME_TELEMETRY_FILENAME,
+  GOVERNANCE_DIAGNOSTICS_FILENAME,
+  GOVERNANCE_DIAGNOSTICS_SCHEMA_VERSION,
+  GOVERNANCE_RUNTIME_MODE_REPORT,
+  GOVERNANCE_RUNTIME_MODE_ENFORCE,
+  GOVERNANCE_PIPELINE_BLOCKED_CODE,
+  GOVERNANCE_RUNTIME_LIFECYCLE,
+  GOVERNANCE_APPROVAL_MANIFEST_FILENAME,
+  GOVERNANCE_APPROVAL_SCHEMA_VERSION,
+  GOVERNANCE_APPROVAL_STATUS,
+  VALIDATION_CRITICAL_RESOLUTION_BLOCK,
+  VALIDATION_CRITICAL_RESOLUTION_APPROVAL,
+  GOVERNANCE_HITL_EVALUATION_CODES,
+  GOVERNANCE_AWAITING_APPROVAL_CODE,
+  GOVERNANCE_RESUME_BLOCKED_CODE,
+  GOVERNANCE_REPLAY_BLOCKED_CODE,
+  GOVERNANCE_STALE_APPROVAL_CODE,
+  GOVERNANCE_INVALIDATED_GOVERNANCE_CODE,
+  GOVERNANCE_LIFECYCLE_INVALID_CODE,
+  GOVERNANCE_CONTINUITY_MISMATCH_CODE,
+  GOVERNANCE_HOOK_PHASE,
+};

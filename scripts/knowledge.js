@@ -8,6 +8,13 @@ const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
 const { writePromptSizeRecord } = require("../core/prompt-sizes");
+const {
+  compactText,
+  isUsableRunContextStrict,
+  buildCompactRunContextForPrompt,
+} = require("./shared-utils");
+const { createStageContextFromOutputDir } = require("./runtime/runtime-context");
+const { createOutputFs } = require("./runtime/output-fs");
 
 const client = createLLMClient();
 
@@ -67,92 +74,41 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
-function compactText(value, maxLength) {
-  const text = String(value || "").trim();
-  if (!maxLength || text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength - 1).trim()}…`;
-}
-
-function isUsableRunContext(runContext) {
-  if (!runContext || typeof runContext !== "object") return false;
-
-  const allowedFiles =
-    runContext.execution_context &&
-    Array.isArray(runContext.execution_context.allowed_files)
-      ? runContext.execution_context.allowed_files
-      : runContext.architect &&
-          Array.isArray(runContext.architect.allowed_files)
-        ? runContext.architect.allowed_files
-        : [];
-
-  return (
-    allowedFiles.length > 0 &&
-    runContext.task &&
-    typeof runContext.task === "object"
-  );
-}
-
-function buildCompactRunContextForPrompt(runContext) {
-  return JSON.stringify(
-    {
-      version: runContext.version,
-      run_id: runContext.run_id,
-      project: runContext.project,
-      task: runContext.task,
-      architect: {
-        status: runContext.architect?.status,
-        allowed_files: runContext.architect?.allowed_files,
-        plan_summary: runContext.architect?.plan_summary,
-        risks: runContext.architect?.risks,
-        stop_criteria: runContext.architect?.stop_criteria
-      },
-      execution_context: runContext.execution_context
-    },
-    null,
-    2
-  );
-}
-
 function buildLegacyKnowledgeContextForPrompt({
   taskPath,
   architectPath,
   executorPath,
+  out,
 }) {
+  const read = out ? (p) => out.readIfExists(p) : safeRead;
   return JSON.stringify(
     {
       mode: "legacy-fallback",
       warning: "run-context ausente",
-      task_excerpt: compactText(safeRead(taskPath), MAX_KNOWLEDGE_LEGACY_TASK_CHARS),
+      task_excerpt: compactText(read(taskPath), MAX_KNOWLEDGE_LEGACY_TASK_CHARS),
       architect_excerpt: compactText(
-        safeRead(architectPath),
+        read(architectPath),
         MAX_KNOWLEDGE_LEGACY_ARCHITECT_CHARS
       ),
       executor_excerpt: compactText(
-        safeRead(executorPath),
+        read(executorPath),
         MAX_KNOWLEDGE_LEGACY_EXECUTOR_CHARS
-      )
+      ),
     },
     null,
     2
   );
 }
 
-async function main() {
-  const outputArg = process.argv[2];
+async function runKnowledge(ctx, opts = {}) {
+  const exitOnFailure = opts.exitOnFailure === true;
+  const out = createOutputFs(ctx.cache);
+  const telemetry = ctx.telemetry;
 
-  if (!outputArg) {
-    console.log("Uso: npm run knowledge <runId>");
-    process.exit(1);
-  }
-
-  let outputDir;
+  telemetry.stepStart("knowledge");
 
   try {
-    outputDir = resolveOutputDir(outputArg);
-  } catch (err) {
-    console.error(err.message || err);
-    process.exit(1);
-  }
+  const outputDir = ctx.outputDir;
 
   ensureFile(outputDir, "Pasta de output");
 
@@ -163,12 +119,13 @@ async function main() {
   const architectPath = path.join(outputDir, "architect-output.md");
   const executorPath = path.join(outputDir, "executor-output.md");
 
-  const reviewMarkdownPath = path.join(outputDir, "review-output.md");
   const reviewJsonPath = path.join(outputDir, "review-output.json");
 
   ensureFile(metadataPath, "metadata.json");
 
-  const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+  const metadata = out
+    ? out.readJson(metadataPath)
+    : JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
 
   const projectRoot = metadata.projectRoot;
   const projectSetupDir = metadata.projectSetupDir;
@@ -177,22 +134,35 @@ async function main() {
 
   ensureDir(projectSetupDir);
 
-  const review = JSON.parse(fs.readFileSync(reviewJsonPath, "utf-8"));
+  const review = out
+    ? out.readJson(reviewJsonPath)
+    : JSON.parse(fs.readFileSync(reviewJsonPath, "utf-8"));
 
   if (review.status !== "approved") {
     console.log("❌ Knowledge só roda com review aprovado");
-    process.exit(1);
+    if (exitOnFailure) process.exit(1);
+    return {
+      success: false,
+      errorType: "KNOWLEDGE_REVIEW_NOT_APPROVED",
+      message: "Review não aprovado.",
+    };
   }
 
-  const runContext = readJsonIfExists(runContextPath, null);
-  const hasRunContext = isUsableRunContext(runContext);
+  const runContext = out
+    ? out.readJsonIfExists(runContextPath, null)
+    : readJsonIfExists(runContextPath, null);
+  const hasRunContext = isUsableRunContextStrict(runContext);
 
   const promptContext = hasRunContext
-    ? buildCompactRunContextForPrompt(runContext)
+    ? buildCompactRunContextForPrompt(runContext, {
+        mode: "review",
+        safeWhitespaceCompact: true,
+      })
     : buildLegacyKnowledgeContextForPrompt({
         taskPath,
         architectPath,
         executorPath,
+        out,
       });
 
   const { content: agent, metadata: agentMeta } =
@@ -219,10 +189,14 @@ ${promptContext}
 
   const knowledgeModel = getModelForStep("knowledge");
 
+  telemetry.llmCall({ step: "knowledge", model: knowledgeModel });
+
   const response = await client.responses.create({
     model: knowledgeModel,
     input: prompt,
   });
+
+  telemetry.llmResponse({ step: "knowledge", model: knowledgeModel });
 
   const generated = String(response.output_text || "").trim();
 
@@ -245,7 +219,8 @@ ${promptContext}
     },
   };
 
-  writeJson(metadataPath, metadata);
+  if (out) out.writeJson(metadataPath, metadata);
+  else writeJson(metadataPath, metadata);
 
   recordLLMUsage({
     outputDir,
@@ -254,9 +229,44 @@ ${promptContext}
     usage: response.usage,
   });
 
+  if (ctx.cache) {
+    ctx.cache.invalidate(metadataPath);
+  }
+
+  ctx.metadata = metadata;
+
   console.log("✅ Knowledge atualizado");
+
+  return { success: true, outputDir };
+  } finally {
+    telemetry.stepEnd("knowledge");
+  }
 }
 
+async function main() {
+  const outputArg = process.argv[2];
+
+  if (!outputArg) {
+    console.log("Uso: npm run knowledge <runId>");
+    process.exit(1);
+  }
+
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    console.error(err.message || err);
+    process.exit(1);
+  }
+
+  const ctx = createStageContextFromOutputDir(outputDir, { runId: outputArg });
+  await runKnowledge(ctx, { exitOnFailure: true });
+}
+
+module.exports = { runKnowledge };
+
+if (require.main === module) {
 main().catch((err) => {
   console.error("❌ Erro no knowledge:", err.message || err);
 
@@ -300,4 +310,5 @@ main().catch((err) => {
   } catch (_) {}
 
   process.exit(1);
-});
+  });
+}

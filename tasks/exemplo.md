@@ -2,7 +2,9 @@
 
 ## Descrição
 
-Adicionar um bloco de destaque de promoção no final da página.
+Validar o contexto direcionado no executor usando o projeto agenda-diaria.
+
+O objetivo é confirmar que o executor recebe trechos relevantes de arquivos grandes via targeted snippets, sem precisar aumentar EXECUTOR_CONTEXT_SNIPPET_SIZE.
 
 ---
 
@@ -16,29 +18,38 @@ Adicionar um bloco de destaque de promoção no final da página.
 
 ## Acceptance Criteria (OBRIGATÓRIO)
 
-- [ ] `index.html` contém um novo bloco `<section id="promocao">`
-- [ ] a seção contém o texto: "Promoção especial de sofás"
-- [ ] a seção contém um botão de WhatsApp com:
-  - `data-wa-href`
-  - `data-wa-msg="Quero saber da promoção"`
-  - `data-wa-placement="promocao"`
-- [ ] a seção foi adicionada no FINAL do `<body>`
-- [ ] `js/main.js` NÃO foi alterado
-- [ ] `css/styles.css` NÃO foi removido
-- [ ] saída do Executor lista arquivos alterados
+- [ ] O pipeline executa sem erro de validação da task
+- [ ] O executor-input.md contém a seção Targeted snippets
+- [ ] O executor recebe contexto relevante de components/AgendaDiaria.tsx
+- [ ] A execução não depende de EXECUTOR_CONTEXT_SNIPPET_SIZE=24000
+- [ ] O executor não bloqueia por snippet insuficiente
+- [ ] Se a funcionalidade já estiver implementada, o executor retorna NO-OP com evidência concreta
+- [ ] Se houver alteração necessária, o executor aplica PATCH válido
+- [ ] O review aprova corretamente o resultado
 
 ---
 
 ## Fora de escopo
 
-- alterar outras seções
-- alterar layout existente
-- adicionar dependências
-- refatorar código
+- Alterar scripts/executor.js
+- Alterar schema do executor
+- Alterar review
+- Alterar architect
+- Alterar docs
+- Alterar configurações globais
+- Aumentar EXECUTOR_CONTEXT_SNIPPET_SIZE
 
 ---
 
 ## Observações
 
-- a seção deve ser nova (não reutilizar existente)
-- pode usar HTML simples
+Após salvar esta task, executar:
+
+npm run run tasks/task-1.md ../agenda-diaria
+
+Validar também:
+
+- prompt-sizes.json contém blocks.targeted_snippets
+- executor.total_prompt_chars foi registrado
+- status do executor
+- status do review

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "jobs": [
+    {
+      "id": "job_mp3i51sb_5cf6b23b9b10",
+      "status": "running",
+      "projectRoot": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss",
+      "taskArg": "tasks/task-1.md",
+      "projectArg": ".",
+      "createdAt": "2026-05-13T03:30:35.724Z",
+      "startedAt": "2026-05-13T03:31:57.737Z",
+      "finishedAt": null,
+      "attempts": 1,
+      "maxAttempts": 1,
+      "runId": null,
+      "error": null,
+      "metadata": {
+        "cli": "enqueue"
+      },
+      "flowOptions": {
+        "dryRun": true,
+        "forceScan": false,
+        "skipPreflightConfirm": true,
+        "policyProfile": null,
+        "forcePolicyBypass": false,
+        "disableGovernance": false
+      },
+      "recovery_reason": null
+    }
+  ]
+}

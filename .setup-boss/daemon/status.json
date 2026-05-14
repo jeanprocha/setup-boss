@@ -1,0 +1,12 @@
+{
+  "running": false,
+  "pid": null,
+  "startedAt": null,
+  "currentJobId": null,
+  "queue": {
+    "running": 1
+  },
+  "updatedAt": "2026-05-13T03:31:59.209Z",
+  "stoppedAt": "2026-05-13T03:31:59.207Z",
+  "uptimeMsApprox": null
+}

@@ -7,11 +7,24 @@
     "review": "node scripts/review.js",
     "knowledge": "node scripts/knowledge.js",
     "run": "node scripts/run.js",
+    "resume": "node scripts/resume.js",
+    "apply-later": "node scripts/apply.js",
+    "replay": "node scripts/replay.js",
     "scan": "node scripts/scan.js",
     "correction": "node scripts/correction.js",
-    "ensure-ia": "node scripts/ensure-ia.js"
+    "ensure-ia": "node scripts/ensure-ia.js",
+    "setup-boss": "node scripts/cli/index.js",
+    "test:e2e": "node scripts/tests/e2e/e2e-runner.js",
+    "validate:artifacts": "node scripts/validate-run-artifacts.js",
+    "test:continuity": "node --test scripts/runtime/replay/continuity.test.js",
+    "test": "node --test scripts/runtime/governance/governance.test.js scripts/runtime/governance/governance-runtime.test.js scripts/runtime/governance/governance-enforcement.test.js scripts/runtime/governance/governance-hitl.test.js scripts/runtime/governance/governance-state-validator.test.js scripts/runtime/governance/governance-diagnostics-engine.test.js scripts/runtime/governance/governance-semantic-continuity.test.js scripts/runtime/governance/governance-continuity.test.js scripts/runtime/preflight/preflight.test.js scripts/runtime/recovery/recovery.test.js scripts/cli/cli-inspection.test.js scripts/cli/commands/semantic-inspect.test.js scripts/runtime/replay/continuity.test.js scripts/daemon/runtime-api.test.js scripts/daemon/lib/runtime-events.test.js scripts/daemon/lib/project-registry.test.js scripts/daemon/lib/worker-pool.test.js scripts/tests/e2e/daemon-runtime.e2e.test.js scripts/execution-plan/execution-plan.test.js scripts/execution-plan/stabilization.test.js scripts/execution-plan/validation-targeting.test.js scripts/execution-plan/validation-targeting/semantic-validation-propagation.test.js scripts/validation-runtime.test.js scripts/semantic-dependency-runtime.test.js scripts/semantic-dependency-runtime/plugins/js-ts-import-graph.test.js scripts/semantic-dependency-runtime/overlay/semantic-mutation-overlay.test.js scripts/semantic-dependency-runtime/diagnostics/semantic-diagnostics-engine.test.js scripts/risk-runtime/risk-runtime.test.js scripts/risk-runtime/semantic-risk-propagation.test.js scripts/review-runtime/review-runtime.test.js scripts/review-runtime/deterministic-review-diff.test.js scripts/review-runtime/deterministic-review-gate.test.js scripts/review-runtime/deterministic-review-baseline.test.js scripts/review-runtime/deterministic-review-runtime.test.js scripts/review-runtime/semantic/semantic-review-propagation.test.js scripts/correction-runtime/correction-runtime.test.js scripts/correction-runtime/semantic-correction-propagation.test.js scripts/transaction-runtime/transaction-runtime.test.js scripts/hybrid-executor/hybrid-shadow-runtime.test.js scripts/hybrid-executor/planning/structural-planning.test.js scripts/hybrid-executor/structural/shadow-transform.test.js scripts/hybrid-executor/structural/structural-execution-gate.test.js scripts/hybrid-executor/structural/structural-apply-engine.test.js scripts/hybrid-executor/hybrid-executor-core.test.js scripts/hybrid-executor/governance/structural-governance-gate.test.js scripts/hybrid-executor/replay/structural-replay-foundation.test.js scripts/hybrid-executor/runtime/runtime-release-validator.test.js scripts/runtime/graph/execution-graph.test.js scripts/runtime/graph/runtime-state/runtime-state.test.js scripts/runtime/graph/scheduler/scheduler.test.js scripts/runtime/graph/overlay/overlay.test.js scripts/runtime/graph/node-adapters/node-adapters.test.js scripts/runtime/graph/replay/replay.test.js scripts/runtime/graph/risk/risk.test.js scripts/runtime/graph/release-readiness/release-readiness.test.js",
+    "build": "node -e \"console.log('[build] no-op para este pacote (só scripts Node)')\""
+  },
+  "bin": {
+    "setup-boss": "scripts/cli/index.js"
   },
   "dependencies": {
+    "@babel/parser": "^7.28.0",
     "dotenv": "^17.2.3",
     "openai": "^6.10.0"
   }

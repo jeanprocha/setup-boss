@@ -506,154 +506,9 @@ O loop e os limites vêm de **`scripts/run.js`** (`MAX_CORRECTIONS`, `MAX_TOTAL_
 
 #
 
-[truncated operational_docs: original_chars=28774 max_chars=12000]
+[truncated operational_docs: original_chars=46773 max_chars=12000]
 
-factual; Fase 3 com bullets alinhados ao código atual.
-
-### docs/ai-session-bootstrap.md
-
-Resumo para novo chat; pipeline e conceitos atuais (**run-context**, PATCH, `llm_usage`).
-
-### docs/padrao-novo-chat.md
-
-Como iniciar conversa sem assumir contexto gigante.
-
-### docs/agents.md
-
-Lista de agents e pipeline.
-
-### docs/agents-governance.md
-
-Regras para criar novos agents.
-
-### docs/observability.md
-
-Artefactos de corrida, `run-log.json`, `metadata.json`, `llm_usage`, limitações.
-
----
-
-## O que atualizar
-
-- Mudança de pipeline ou de artefactos obrigatórios
-- Nova etapa ou novo instrumento (ex.: métricas, novo JSON)
-- Alteração de segurança ou limites (`MAX_*`, cache de scan)
-- Mudança de contrato dos agents (quando refletida nos scripts)
-
----
-
-## O que não fazer
-
-- Reescrever docs sem mudança de sistema
-- Documentar planeamento como se já estivesse implementado
-
----
-
-## Como atualizar
-
-1. Ler o doc atual e o código afetado
-2. Substituir por versão completa coerente com o resto de `docs/`
-3. Manter tom técnico e direto
-
----
-
-## Critério
-
-```text
-Um desenvolvedor só com docs + repo consegue prever o comportamento do npm run run.
-```
-
----
-
-## Regra final
-
-```text
-Documentação = estado real do sistema.
-```
-
-
-## OPERATIONAL DOC: setup-boss-roadmap.md
-
-# Setup Boss — Roadmap
-
-## Pipeline em produção
-
-```text
-scan → architect → run-context.json
-→ executor (PATCH)
-→ review
-→ [correction → executor → review]*
-→ knowledge
-```
-
-O comando **`npm run run`** automatiza até **knowledge** quando o review fica **`approved`**. Se o review pedir correção, o ciclo **correction → executor → review** repete até aprovação, **`blocked`**, ou limites (**`MAX_CORRECTIONS`**, **`MAX_TOTAL_STEPS`**) em **`scripts/run.js`**.
-
----
-
-## Concluído (estado atual do código)
-
-- **`run-context.json`** — gerado pelo architect; inclui task resumida, **`allowed_files`**, critérios de aceite, **`review_focus`**, estado do architect (**`scripts/architect.js`**).
-- **Executor por PATCH** — schema com **`operation: patch`**; **`search`** deve ocorrer **exactamente uma vez** no ficheiro alvo; escopo limitado a **`allowed_files`** (**`scripts/executor.js`**).
-- **Review JSON-first** — **`review-output.json`**; uso de **run-context** quando válido para prompts mais curtos (**scripts/review.js** e leitura de artefactos).
-- **Modelos por etapa** — **`core/llm-client.js`**, variáveis **`ARCHITECT_MODEL`**, **`EXECUTOR_MODEL`**, etc., fallback **`OPENAI_MODEL`**.
-- **Tracking** — **`core/llm-usage.js`**; **`metadata.json`** com **`llm_usage`** (por chave de etapa) e **`llm_usage_total`** em **`<projeto>/.IA/outputs/<run>/`**; inclui **`scan`**, **`ensure_ia`**, **`semantic_ia`** quando aplicável ao fluxo.
-
----
-
-## Próximos passos declarados
-
-### STEP 4 — Optimização agressiva de tokens
-
-- Reduzir texto redundante entre etapas dentro do que o contrato dos artefactos permitir.
-- Políticas de truncagem e resumos alinhadas aos consumidores existentes.
-
-### STEP 5 — Fallback inteligente (local/API)
-
-- Caminhos locais determinísticos onde fizer sentido.
-- API só onde o ganho compensar custo e complexidade.
-
-### STEP 6 — Executor híbrido (mais determinístico)
-
-- Mais edições guiadas por estrutura (marcadores, slots), mantendo PATCH onde for necessário.
-- Parsing mais rígido quando o stack do projeto permitir.
-
----
-
-## Regras de evolução
-
-- Manter invariantes dos consumidores de artefactos (**`review-output.json`**, **`executor-changes.json`**, etc.) salvo migração explícita.
-- Review continua no caminho padrão antes de knowledge com aceitação.
-- Não expandir escrita automática para fora do whitelist da corrida (**`allowed_files`**).
-
----
-
-## Critério de sucesso (contínuo)
-
-- Execução end-to-end até knowledge **sem passo manual de edição** no mesmo run quando não há bloqueio.
-- Custos e tokens observáveis por etapa nos artefactos da corrida.
-- Menos tokens por run mantendo critérios de aceite atendidos em tasks válidas.
-
-
-## OPERATIONAL DOC: setup-boss-vision.md
-
-# Setup Boss — Visão de evolução
-
-## Objetivo
-
-Descrição por fases da maturidade do produto, alinhada ao estado do repositório **v2.0.0**.
-
----
-
-## Fase 1 — MVP
-
-- Plano (**architect**)
-- Task e critérios como entrada explícita
-- **Alterações no disco feitas fora do pipeline automático** (sem executor integrado)
-
----
-
-## Fase 2 — Semi-automação
-
-- **Review** orientado a JSON (**`review-output.json`**)
+ntado a JSON (**`review-output.json`**)
 - Loop **correction**
 - Logs de corrida e limites configuráveis
 - Transição preparada para execução automática no disco (**ainda sem executor PATCH como está hoje**)
@@ -700,6 +555,125 @@ O sistema posiciona-se como **orquestrador com controlo de custo e escopo**, nã
 ```text
 Roadmap STEP 4–6 — optimização de tokens, fallback local/API, executor híbrido.
 ```
+
+
+## OPERATIONAL DOC: stability-report-phase28.md
+
+# Relatório de estabilidade — Fase 2.8
+
+## Onde está o relatório máquina
+
+Cada execução de `npm run test:e2e` gera:
+
+`.setup-boss/reports/e2e-phase28-last.json`
+
+Campos principais:
+
+- `ok` — todas as verificações determinísticas passaram.
+- `scenarios` — lista nominal dos cenários executados.
+- `edge_cases_observed` — falhas capturadas na última corrida (se vazio, nenhuma regressão detectada na suite).
+
+## Pontos fortes (baseline)
+
+- Validação offline de manifest/drift/resume/governance sem custo LLM.
+- CLI (`doctor`, `inspect`, `validate-run-artifacts`) orientada a auditoria.
+- Continuity tests cobrem apply-later feliz e drift.
+
+## Limitações / gaps conscientes
+
+- Cenários **A** e **C** completos com LLM não fazem parte da suite CI determinística — executar manualmente com credenciais quando necessário.
+- Stress massivo (centenas de replays) não está automatizado; avaliar conforme necessidade.
+
+## Histórico de hardening (sumário)
+
+- Validador aceita pastas com `metadata.json` para auditorias fora do resolver estrito.
+- Flag `--report-json` evita corrupção da stdout em ambientes instrumentados.
+- `doctor` não falha apenas por runs antigas degradadas (modo estrito opt-in).
+
+
+## OPERATIONAL DOC: troubleshooting.md
+
+# Troubleshooting
+
+## Doctor falha no CI mas funciona localmente
+
+O comando falha se directorias obrigatórias (`.setup-boss/runs`, `scripts/runtime`) não existirem ou policy loader não inicializar. Use `--strict-runs` apenas quando quiser que runs **amostradas** invalidem o exit code — por defeito, problemas de runs antigas aparecem como **avisos**.
+
+## `resolveOutputDir` / local não permitido
+
+`validate-run-artifacts.js` aceita **qualquer pasta** que já contenha `metadata.json` (para auditorias). Índices / run ids continuam a usar as regras de segurança do resolver (`project/.IA/outputs` ou legado `outputs/`).
+
+## Manifest stale
+
+Erro `MANIFEST_STALE` ou validação `STALE_MANIFEST`: regenere a corrida ou reconcilie `executor-changes.json` + `patch-manifest.json` manualmente — não force apply.
+
+## Replay não reflecte estado esperado
+
+Replay não substitui uma corrida completa se artefactos intermédios faltarem; confirmar `executor-output.md`, `executor-result.json`, etc., conforme o `--from`.
+
+## Resume diz RUN_NOT_RESUMABLE
+
+Leia a razão textual (`inspect` mostra `resume_reason`). Causas frequentes: pipeline já `approved` completo, manifest inconsistente, falta de `scan-output.md` no output dir com executor incompleto.
+
+## JSON corrupto em artefactos
+
+O CLI tenta degradar graciosamente (`readJsonSafe`). Para dados críticos (review/metadata), correcção manual ou nova corrida.
+
+## UTF-8 / terminal Windows
+
+Ver `docs/windows-terminal-utf8.md` no repo se caracteres ou logs aparecerem incorrectamente.
+
+
+## OPERATIONAL DOC: windows-terminal-utf8.md
+
+# Windows Terminal / Cursor — UTF-8
+
+O Setup Boss grava artifacts como **UTF-8** (UTF-8 válido, sem depender do code page do terminal).
+
+Mojibake no terminal como `Ã§Ã£o`, `alteraÃ§Ãµes` ou `determinÃstico` costuma significar que **bytes UTF-8** da saída do processo foram **renderizados** como **Windows-1252** ou **CP850** (console OEM). Isso afeta a **visualização** no terminal — **não** implica que os arquivos em disco estejam corrompidos.
+
+**Não copie** trechos com mojibake do terminal para usar em `search` / `replace` de patches; use o conteúdo lido do arquivo com encoding correto.
+
+## Sessão atual (PowerShell)
+
+```powershell
+chcp 65001
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+```
+
+## Persistir no perfil do PowerShell
+
+Abra o perfil:
+
+```powershell
+notepad $PROFILE
+```
+
+Adicione (ou ajuste):
+
+```powershell
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+```
+
+## Ler artifacts com UTF-8
+
+```powershell
+Get-Content .\arquivo.json -Encoding UTF8
+```
+
+## Diagnóstico rápido
+
+```powershell
+chcp
+$OutputEncoding
+[Console]::OutputEncoding
+[System.Text.Encoding]::Default.CodePage
+```
+
+## Como interpretar
+
+- Se `node -e "…"` ler o ficheiro como `utf8` e mostrar acentos corretos, o artifact em disco está correto.
+- Se `cat`/saída bruta no terminal mostrar `Ã§Ã£o`, trata-se sobretudo de **renderização** no terminal — compare com `Get-Content -Encoding UTF8` ou com Node.
 
 
 
@@ -776,6 +750,32 @@ O fluxo passa a ser validável por presença do ficheiro alvo e pela ausência d
 Verifica-se por inspeção do diff e do conteúdo final de `tmp/setup-boss-diagnostic.md`, confirmando que não houve alterações fora do caminho permitido.
 
 ### Date
+2026-05-05
+
+## Decision / Update
+
+### Context
+
+A run de regression deve ficar confinada ao ficheiro temporário permitido, sem tocar no código do projeto.
+
+### Decision
+
+O repositório passou a usar `tmp/setup-boss-regression.md` como única saída de mudança para este smoke test.
+
+### Reason
+
+O escopo aprovado exige isolamento total de alterações para evitar efeitos colaterais em `scripts/`, `core/`, `agents/` e `docs/`.
+
+### Impact
+
+Qualquer validação futura deste pipeline deve confirmar que só esse ficheiro temporário contém a evidência de regressão e timestamp ISO.
+
+### Validation
+
+Verifica-se com `git diff` e inspeção do ficheiro alvo, garantindo ausência de alterações fora de `tmp/setup-boss-regression.md`.
+
+### Date
+
 2026-05-05
 
 ## PROJECT LOCAL TRUTH: project-scan.md
@@ -1409,9 +1409,85 @@ C:\Users\pierr\Documents\automacao\setup-boss
 .IA\outputs\20260505-105442-diagnostico-prompt-sizes\review-output.md
 .IA\outputs\20260505-105442-diagnostico-prompt-
 
-[truncated file tree: original_chars=30892 max_chars=12000]
+[truncated file tree: original_chars=29078 max_chars=12000]
 
-nding-sofas-exemplo\architect-input.md
+md
+outputs\2026-05-02T10-25-48-920Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T10-43-51-855Z-landing-sofas-exemplo/
+outputs\2026-05-02T10-43-51-855Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T10-43-51-855Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T10-43-51-855Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T10-44-58-880Z-landing-sofas-exemplo/
+outputs\2026-05-02T10-44-58-880Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T10-44-58-880Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T10-44-58-880Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T10-44-58-880Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo/
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T10-55-21-726Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo/
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T11-03-15-743Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo/
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\correction-prompt.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\cursor-allowed-files.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\cursor-output.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\cursor-prompt.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\cursor-validation.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\review-output.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\review-output.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T11-06-28-026Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T11-34-12-006Z-landing-sofas-exemplo/
+outputs\2026-05-02T11-34-12-006Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T11-34-12-006Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T11-34-12-006Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T11-34-12-006Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T11-46-08-359Z-landing-sofas-exemplo/
+outputs\2026-05-02T11-46-08-359Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T11-46-08-359Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T11-46-08-359Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T11-46-08-359Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo/
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\architect-output.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\architect-validation.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\correction-prompt.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\cursor-allowed-files.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\cursor-output.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\cursor-prompt.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\cursor-validation.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\knowledge-update.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\metadata.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\review-output.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\review-output.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T11-53-31-024Z-landing-sofas-exemplo\task.md
+outputs\2026-05-02T15-56-32-227Z-landing-sofas-exemplo/
+outputs\2026-05-02T15-56-32-227Z-landing-sofas-exemplo\architect-input.md
+outputs\2026-05-02T15-56-32-227Z-landing-sofas-exemplo\run-log.json
+outputs\2026-05-02T15-56-32-227Z-landing-sofas-exemplo\scan-input.md
+outputs\2026-05-02T15-56-32-227Z-landing-sofas-exemplo\scan-output.md
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo/
+outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\architect-input.md
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\architect-output.md
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\architect-validation.json
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-changes.json
@@ -1421,81 +1497,6 @@ outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\executor-result.json
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\metadata.json
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\run-log.json
 outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T15-58-59-561Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-06-11-400Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T16-12-11-844Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-output.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\architect-validation.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\correction-instructions.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-changes.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-input.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-output.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\executor-result.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\metadata.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\review-output.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\review-output.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T16-16-08-830Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T16-26-19-096Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-output.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\architect-validation.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\correction-instructions.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-changes.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-input.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-output.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\executor-result.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\metadata.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\review-output.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\review-output.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T16-38-17-978Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo/
-outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T16-44-41-006Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo/
-outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T17-04-50-011Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo/
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-input.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-output.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\architect-validation.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\correction-instructions.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\executor-changes.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\executor-input.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\executor-output.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\executor-result.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\knowledge-update.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\metadata.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\review-output.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\review-output.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\run-log.json
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\scan-input.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\scan-output.md
-outputs\2026-05-02T17-13-40-563Z-landing-sofas-exemplo\task.md
-outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo/
 
 ## IMPORTANT FILE CONTENT
 
@@ -1513,7 +1514,16 @@ outputs\2026-05-02T17-27-23-620Z-landing-sofas-exemplo/
     "run": "node scripts/run.js",
     "scan": "node scripts/scan.js",
     "correction": "node scripts/correction.js",
-    "ensure-ia": "node scripts/ensure-ia.js"
+    "ensure-ia": "node scripts/ensure-ia.js",
+    "setup-boss": "node scripts/cli/index.js",
+    "test:e2e": "node scripts/tests/e2e/e2e-runner.js",
+    "validate:artifacts": "node scripts/validate-run-artifacts.js",
+    "test:continuity": "node --test scripts/runtime/replay/continuity.test.js",
+    "test": "node --test scripts/runtime/governance/governance.test.js scripts/runtime/preflight/preflight.test.js scripts/runtime/recovery/recovery.test.js scripts/cli/cli-inspection.test.js scripts/runtime/replay/continuity.test.js",
+    "build": "node -e \"console.log('[build] no-op para este pacote (só scripts Node)')\""
+  },
+  "bin": {
+    "setup-boss": "scripts/cli/index.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
@@ -1542,6 +1552,12 @@ GPT_5_4_MINI_OUTPUT_USD_PER_1M=
 
 MAX_CORRECTIONS=3
 MAX_TOTAL_STEPS=20
+
+# Recovery (fase 2.6) — orçamentos de retry supervisionado
+SETUP_BOSS_EXECUTOR_MICRO_RETRY_MAX=2
+SETUP_BOSS_PROVIDER_RETRY_MAX=3
+SETUP_BOSS_CORRECTION_RETRY_BUDGET=1
+
 ENABLE_SCAN_CACHE=true
 
 FORCE_SCAN=
@@ -1559,6 +1575,28 @@ SCAN_GLOBAL_CONTEXT_MAX_CHARS=6000
 ARCHITECT_PROJECT_SCAN_MAX_CHARS=8000
 # Teto do texto PROJECT SCAN (project-scan.md) no prompt do architect; <= 0 sem truncagem.
 
-IA_CONTEXT_AI_RULES_MAX_CHARS=2000
-# Teto só para .IA/10-ai-rules.md ao montar PROJECT IA CONTEXT (collectIAContext); <= 0 sem truncagem.
+EXECUTOR_CONTEXT_SNIPPET_SIZE=6000
+# Tamanho máximo do snippet por arquivo permitido no executor (caracteres por ficheiro).
+# Aumentar para tasks em ficheiros grandes (ex.: componentes React extensos).
+# Exemplo: 24000 para componentes muito grandes (~19k chars ou mais).
+# <= 0 não deve ser usado, salvo se o código suportar explicitamente esse valor.
+
+# --- Governança / política runtime (Fase 2.7) ---
+SETUP_BOSS_POLICY_PROFILE=
+# Perfis FAST, NORMAL, STRICT, ENTERPRISE (ou NONE / OFF para desactivar só via env onde suportado).
+SETUP_BOSS_FORCE_POLICY_BYPASS=
+# Defina como 1/true/yes apenas para auditoria deliberada (--force-policy-bypass na CLI).
+SETUP_BOSS_DISABLE_GOVERNANCE=
+# 1/true/yes desliga o motor de governança nesta sessão/processo.
+
+SETUP_BOSS_POLICY_MAX_COST_USD=
+# Opcional — teto de custo USD estimado (preços por modelo já definidos por cima).
+
+SETUP_BOSS_POLICY_MAX_FILES=
+# Opcional — teto máximo sobre a estimativa de ficheiros (inteiro positivo).
+
+SETUP_BOSS_POLICY_MAX_CORRECTIONS=
+# Opcional — teto de iterações de correção combinado ao cap predefinido (MAX_CORRECTIONS).
+
+
 

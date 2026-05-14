@@ -1,0 +1,22 @@
+"use strict";
+
+/** Fase 4.12.9 — contrato execution-graph-release-readiness.json */
+const RELEASE_READINESS_SCHEMA_VERSION = 1;
+const RELEASE_READINESS_ARTIFACT_FILENAME = "execution-graph-release-readiness.json";
+const RELEASE_READINESS_PHASE_TAG = "4.12.9";
+
+const RELEASE_STATUS = {
+  READY: "ready",
+  WARNING: "warning",
+  BLOCKED: "blocked",
+};
+
+const RELEASE_READINESS_ENV = "SETUP_BOSS_EXECUTION_GRAPH_RELEASE_READINESS";
+
+module.exports = {
+  RELEASE_READINESS_SCHEMA_VERSION,
+  RELEASE_READINESS_ARTIFACT_FILENAME,
+  RELEASE_READINESS_PHASE_TAG,
+  RELEASE_STATUS,
+  RELEASE_READINESS_ENV,
+};

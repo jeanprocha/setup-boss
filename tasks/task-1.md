@@ -2,11 +2,9 @@
 
 ## Descrição
 
-Adicionar contador de caracteres no campo de anotação.
+Adicionar ou garantir um placeholder descritivo no campo de busca da agenda diária.
 
-Enquanto o usuário digita, deve ser exibido um contador mostrando quantos caracteres já foram digitados.
-
-Exemplo: `23 caracteres`.
+O placeholder deve orientar o usuário sobre o que pode ser pesquisado.
 
 ---
 
@@ -20,27 +18,30 @@ Exemplo: `23 caracteres`.
 
 ## Acceptance Criteria (OBRIGATÓRIO)
 
-- [ ] contador aparece abaixo ou ao lado do campo de anotação
-- [ ] contador atualiza em tempo real enquanto o usuário digita
-- [ ] contador inicia em 0 quando vazio
-- [ ] não interfere no salvamento da anotação
-- [ ] UI permanece estável
-- [ ] pelo menos 1 arquivo real do projeto é alterado
-- [ ] executor não retorna `blocked`
-- [ ] executor lista arquivos alterados
-- [ ] review aprova a execução
+- [ ] `components/AgendaDiaria.tsx` possui placeholder descritivo no campo de busca
+- [ ] o placeholder é exibido corretamente quando o campo estiver vazio
+- [ ] o placeholder não interfere na lógica atual de busca
+- [ ] se o placeholder já existir corretamente implementado, o executor retorna NO-OP com evidência concreta
+- [ ] se o placeholder não existir, o executor aplica PATCH válido
+- [ ] a alteração não remove funcionalidades existentes de busca, filtro, seleção ou edição
+- [ ] saída do Executor lista arquivos alterados ou justifica NO-OP
 
 ---
 
 ## Fora de escopo
 
-- limite máximo de caracteres
-- backend
-- persistência adicional
+- Alterar arquivos fora de `components/AgendaDiaria.tsx`
+- Alterar scripts do Setup Boss
+- Alterar outputs da pasta `.IA`
+- Alterar schema, executor, review ou architect
+- Refatorar layout geral
+- Adicionar dependências
+- Alterar APIs ou backend
 
 ---
 
 ## Observações
 
-- implementação simples
-- foco em feedback visual
+Esta task deve ser executada sem aumentar `EXECUTOR_CONTEXT_SNIPPET_SIZE`.
+
+Priorizar alteração pequena e local em elemento de input já existente.

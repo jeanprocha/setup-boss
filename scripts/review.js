@@ -8,6 +8,28 @@ const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
 const { measureChatInput, writePromptSizeRecord } = require("../core/prompt-sizes");
+const {
+  compactText,
+  extractSection,
+  normalizeRelativePath,
+  assertSafeProjectPath,
+  summaryDeclaresNoOpImplementation,
+  isConcreteNoOpEvidence,
+  isUsableRunContext,
+  getAllowedFilesFromRunContext,
+  buildCompactRunContextForPrompt,
+} = require("./shared-utils");
+const { createStageContextFromOutputDir } = require("./runtime/runtime-context");
+const { createOutputFs } = require("./runtime/output-fs");
+const { readProjectUtf8 } = require("./runtime/virtual-file-state");
+const { isDeterministicReviewEnabled, getReviewEngineMode } = require("./review-runtime/feature-flags");
+const { runReviewOrchestration } = require("./review-runtime/orchestration/review-orchestrator");
+const { finalizeDeterministicReviewObservability } = require("./review-runtime/deterministic-review-runtime");
+const { applyDeterministicReviewGateCliEffects } = require("./review-runtime/deterministic-review-gate");
+const {
+  finalizeBaselineRegressionForRun,
+  applyBaselineRegressionGateCliEffects,
+} = require("./review-runtime/deterministic-review-baseline");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 
@@ -95,25 +117,23 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function compactText(value, maxLength) {
-  const text = String(value || "").trim();
-
-  if (!maxLength || text.length <= maxLength) return text;
-
-  return `${text.slice(0, maxLength - 1).trim()}…`;
-}
-
 /** JSON numa linha para o prompt (sem pretty-print). */
 function compactJson(value) {
   return JSON.stringify(value === undefined ? null : value);
 }
 
-function updateAgentMetadata(outputDir, agentMeta) {
+function updateAgentMetadata(outputDir, agentMeta, out) {
   const metadataPath = path.join(outputDir, "metadata.json");
 
-  if (!fs.existsSync(metadataPath)) return;
+  if (out) {
+    if (!out.exists(metadataPath)) return;
+  } else if (!fs.existsSync(metadataPath)) {
+    return;
+  }
 
-  const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+  const metadata = out
+    ? out.readJson(metadataPath)
+    : JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
 
   metadata.agents = {
     ...metadata.agents,
@@ -127,7 +147,21 @@ function updateAgentMetadata(outputDir, agentMeta) {
     }
   };
 
-  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
+  if (out) out.writeJson(metadataPath, metadata);
+  else
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
+}
+
+function writeReviewOutputs(out, outputDir, jsonObj, mdText) {
+  const jPath = path.join(outputDir, "review-output.json");
+  const mPath = path.join(outputDir, "review-output.md");
+  if (out) {
+    out.writeJson(jPath, jsonObj);
+    out.writeUtf8(mPath, mdText);
+  } else {
+    fs.writeFileSync(jPath, JSON.stringify(jsonObj, null, 2), "utf-8");
+    fs.writeFileSync(mPath, mdText, "utf-8");
+  }
 }
 
 function normalizeTaskAcceptanceLevel(token) {
@@ -181,17 +215,6 @@ function extractExpectedAcceptanceLevelFromRunContext(runContext) {
   return normalizeTaskAcceptanceLevel(level);
 }
 
-function extractSection(content, sectionTitle) {
-  const escaped = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(
-    `## ${escaped}\\s*([\\s\\S]*?)(?=\\n## |$)`,
-    "i"
-  );
-
-  const match = content.match(regex);
-  return match ? match[1].trim() : "";
-}
-
 function extractArchitectAllowedFiles(architectOutput) {
   const section = extractSection(architectOutput, "Arquivos prováveis");
 
@@ -201,48 +224,6 @@ function extractArchitectAllowedFiles(architectOutput) {
     .filter(Boolean)
     .filter((line) => !line.startsWith("#"))
     .map((line) => line.replace(/`/g, "").trim());
-}
-
-function normalizeRelativePath(filePath) {
-  return String(filePath || "")
-    .replace(/\\/g, "/")
-    .replace(/^\.?\//, "")
-    .trim();
-}
-
-function assertSafeProjectPath(projectRoot, relativePath) {
-  const normalized = normalizeRelativePath(relativePath);
-
-  if (!normalized) {
-    throw new Error("Caminho vazio não permitido.");
-  }
-
-  if (path.isAbsolute(normalized)) {
-    throw new Error(`Caminho absoluto não permitido: ${relativePath}`);
-  }
-
-  if (
-    normalized.includes("..") ||
-    normalized.includes(".git/") ||
-    normalized.includes("node_modules/")
-  ) {
-    throw new Error(`Caminho inseguro não permitido: ${relativePath}`);
-  }
-
-  const absolutePath = path.resolve(projectRoot, normalized);
-  const resolvedProjectRoot = path.resolve(projectRoot);
-
-  if (
-    absolutePath !== resolvedProjectRoot &&
-    !absolutePath.startsWith(resolvedProjectRoot + path.sep)
-  ) {
-    throw new Error(`Arquivo fora do projeto alvo: ${relativePath}`);
-  }
-
-  return {
-    relativePath: normalized,
-    absolutePath
-  };
 }
 
 function createSnippetAroundNeedle(content, needle, maxSize) {
@@ -288,7 +269,7 @@ function getPatchNeedle(change, executorResult) {
   return "";
 }
 
-function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot) {
+function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot, overlay) {
   if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
     return [];
   }
@@ -335,7 +316,7 @@ function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot) {
       };
     }
 
-    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+    const content = readProjectUtf8(projectRoot, relPath, overlay || null);
     const needle = getPatchNeedle(change, executorResult);
     const snippet = createSnippetAroundNeedle(
       content,
@@ -360,39 +341,7 @@ function buildChangedFilesEvidence(changedFiles, executorResult, projectRoot) {
   });
 }
 
-function getAllowedFilesFromRunContext(runContext) {
-  if (
-    runContext &&
-    runContext.execution_context &&
-    Array.isArray(runContext.execution_context.allowed_files)
-  ) {
-    return runContext.execution_context.allowed_files
-      .map(normalizeRelativePath)
-      .filter(Boolean);
-  }
-
-  if (
-    runContext &&
-    runContext.architect &&
-    Array.isArray(runContext.architect.allowed_files)
-  ) {
-    return runContext.architect.allowed_files
-      .map(normalizeRelativePath)
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-function isUsableRunContext(runContext) {
-  if (!runContext || typeof runContext !== "object") return false;
-
-  const allowedFiles = getAllowedFilesFromRunContext(runContext);
-
-  return allowedFiles.length > 0;
-}
-
-function buildFallbackRealState(architectOutput, projectRoot) {
+function buildFallbackRealState(architectOutput, projectRoot, overlay) {
   const paths = [...new Set(extractArchitectAllowedFiles(architectOutput))];
 
   return paths.map((relPath) => {
@@ -434,7 +383,7 @@ function buildFallbackRealState(architectOutput, projectRoot) {
       };
     }
 
-    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+    const content = readProjectUtf8(projectRoot, safe.relativePath, overlay || null);
 
     return {
       path: safe.relativePath,
@@ -447,7 +396,7 @@ function buildFallbackRealState(architectOutput, projectRoot) {
   });
 }
 
-function buildRunContextFallbackRealState(runContext, projectRoot) {
+function buildRunContextFallbackRealState(runContext, projectRoot, overlay) {
   const paths = [...new Set(getAllowedFilesFromRunContext(runContext))];
 
   return paths.map((relPath) => {
@@ -489,7 +438,7 @@ function buildRunContextFallbackRealState(runContext, projectRoot) {
       };
     }
 
-    const content = fs.readFileSync(safe.absolutePath, "utf-8");
+    const content = readProjectUtf8(projectRoot, safe.relativePath, overlay || null);
 
     return {
       path: safe.relativePath,
@@ -525,28 +474,6 @@ ${file.snippet || ""}
 \`\`\``;
     })
     .join("\n\n");
-}
-
-function buildCompactRunContextForPrompt(runContext) {
-  return JSON.stringify(
-    {
-      version: runContext.version,
-      run_id: runContext.run_id,
-      project: runContext.project,
-      task: runContext.task,
-      architect: {
-        status: runContext.architect && runContext.architect.status,
-        violations: runContext.architect && runContext.architect.violations,
-        allowed_files: runContext.architect && runContext.architect.allowed_files,
-        plan_summary: runContext.architect && runContext.architect.plan_summary,
-        risks: runContext.architect && runContext.architect.risks,
-        stop_criteria: runContext.architect && runContext.architect.stop_criteria
-      },
-      execution_context: runContext.execution_context
-    },
-    null,
-    2
-  );
 }
 
 function buildLegacyContextForPrompt({ task, scan, architect }) {
@@ -619,22 +546,60 @@ function validateReviewResult(result, expectedLevel) {
   return errors;
 }
 
-async function run() {
-  const outputArg = process.argv[2];
+function buildDeterministicNoOpInsufficientEvidenceReviewResult(
+  acceptanceLevel,
+) {
+  return {
+    status: "blocked",
+    acceptance_level: acceptanceLevel,
+    blocking_issues: [
+      "NO-OP sem evidência concreta suficiente: `executor-result` deve incluir marcadores NO-OP no summary e cada evidence com ficheiro (.tsx/.ts/.js/.md), termo técnico (placeholder, filter, busca…) e texto substantivo — ver `scripts/review.js` / `executor.js`.",
+    ],
+    warnings: [],
+    requires_correction: false,
+    summary:
+      "NO-OP rejeitado (determinístico): evidência concreta insuficiente para aprovar sem LLM.",
+    markdown_report:
+      "**Blocked (deterministic NO-OP gate).**\n\nO executor retornou `success` sem patches, mas faltam critérios mínimos de evidence concreta (ficheiro + termo técnico + texto substantivo distribuíveis nas linhas de `evidence`) ou marcadores esperados em `summary`.",
+  };
+}
 
-  if (!outputArg) {
-    throw new Error("Usage: node scripts/review.js <output-dir>");
-  }
+function resolveAcceptanceLevelForReview(expectedLevel) {
+  return expectedLevel &&
+    ACCEPTANCE_LEVEL_ENUM.includes(expectedLevel)
+    ? expectedLevel
+    : "development";
+}
 
-  let outputDir;
+function buildDeterministicNoOpReviewResult(executorResult, acceptanceLevel) {
+  const execSummary = String(executorResult?.summary ?? "").trim();
+
+  const summary = execSummary.startsWith("NO-OP validado.")
+    ? execSummary
+    : `NO-OP validado. ${execSummary || "Executor concluiu sem alterações em disco — estado atual aceite."}`;
+
+  return {
+    status: "approved",
+    acceptance_level: acceptanceLevel,
+    blocking_issues: [],
+    warnings: [
+      "NO-OP determinístico: executor retornou `success` sem patches aplicados (`executor-changes` vazio).",
+    ],
+    requires_correction: false,
+    summary,
+    markdown_report:
+      "**Approved (deterministic NO-OP).**\n\nO executor registou `success` com lista de alterações vazia, `summary` com marcador NO-OP e evidence concreta (ficheiro + trecho técnico), pelo que esta passagem aceita-se sem ciclo de correção.",
+  };
+}
+
+async function runReview(ctx) {
+  const out = createOutputFs(ctx.cache);
+  const telemetry = ctx.telemetry;
+
+  telemetry.stepStart("review");
 
   try {
-    outputDir = resolveOutputDir(outputArg);
-  } catch (err) {
-    throw new Error(
-      `Usage: node scripts/review.js <runId> — ${err.message || err}`
-    );
-  }
+  const outputDir = ctx.outputDir;
 
   ensureDir(outputDir);
 
@@ -642,33 +607,44 @@ async function run() {
   const { content: reviewerAgent, metadata: agentMeta } =
     loadAgent(reviewerAgentPath);
 
-  updateAgentMetadata(outputDir, agentMeta);
+  updateAgentMetadata(outputDir, agentMeta, out);
 
   const metadataPath = path.join(outputDir, "metadata.json");
-  const pipelineMetadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+  const pipelineMetadata = out
+    ? out.readJson(metadataPath)
+    : JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
   const projectRoot = pipelineMetadata.projectRoot;
 
-  const runContext = readJsonIfExists(
-    path.join(outputDir, "run-context.json"),
-    null
-  );
+  const virtualOverlay =
+    ctx.state && ctx.state.virtual_project_overlay
+      ? ctx.state.virtual_project_overlay
+      : null;
+
+  const dryRunReview =
+    pipelineMetadata.execution &&
+    pipelineMetadata.execution.mode === "dry_run";
+
+  const runContextPath = path.join(outputDir, "run-context.json");
+  const runContext = out
+    ? out.readJsonIfExists(runContextPath, null)
+    : readJsonIfExists(runContextPath, null);
 
   const hasUsableRunContext = isUsableRunContext(runContext);
 
   const executor = compactText(
-    readIfExists(path.join(outputDir, "executor-output.md")),
+    out
+      ? out.readIfExists(path.join(outputDir, "executor-output.md"))
+      : readIfExists(path.join(outputDir, "executor-output.md")),
     MAX_EXECUTOR_OUTPUT_CHARS
   );
 
-  const changedFiles = readJsonIfExists(
-    path.join(outputDir, "executor-changes.json"),
-    []
-  );
+  const changedFiles = out
+    ? out.readJsonIfExists(path.join(outputDir, "executor-changes.json"), [])
+    : readJsonIfExists(path.join(outputDir, "executor-changes.json"), []);
 
-  const executorResult = readJsonIfExists(
-    path.join(outputDir, "executor-result.json"),
-    null
-  );
+  const executorResult = out
+    ? out.readJsonIfExists(path.join(outputDir, "executor-result.json"), null)
+    : readJsonIfExists(path.join(outputDir, "executor-result.json"), null);
 
   let task = "";
   let scan = "";
@@ -678,11 +654,21 @@ async function run() {
 
   if (hasUsableRunContext) {
     expectedLevel = extractExpectedAcceptanceLevelFromRunContext(runContext);
-    promptContext = buildCompactRunContextForPrompt(runContext);
+    promptContext = buildCompactRunContextForPrompt(runContext, {
+      mode: "review",
+      includeArchitectViolations: true,
+      safeWhitespaceCompact: true,
+    });
   } else {
-    task = readIfExists(path.join(outputDir, "task.md"));
-    scan = readIfExists(path.join(outputDir, "scan-output.md"));
-    architect = readIfExists(path.join(outputDir, "architect-output.md"));
+    task = out
+      ? out.readIfExists(path.join(outputDir, "task.md"))
+      : readIfExists(path.join(outputDir, "task.md"));
+    scan = out
+      ? out.readIfExists(path.join(outputDir, "scan-output.md"))
+      : readIfExists(path.join(outputDir, "scan-output.md"));
+    architect = out
+      ? out.readIfExists(path.join(outputDir, "architect-output.md"))
+      : readIfExists(path.join(outputDir, "architect-output.md"));
     expectedLevel = extractExpectedAcceptanceLevelFromTask(task);
 
     promptContext = buildLegacyContextForPrompt({
@@ -692,12 +678,167 @@ async function run() {
     });
   }
 
+  const acceptanceLevelResolved = resolveAcceptanceLevelForReview(expectedLevel);
+
+  let deterministicReviewBundle = null;
+  if (isDeterministicReviewEnabled()) {
+    deterministicReviewBundle = runReviewOrchestration({
+      outputDir,
+      telemetry,
+      reviewEngineMode: getReviewEngineMode(),
+      outputFs: out,
+    });
+    if (!deterministicReviewBundle.ok) {
+      console.warn(
+        `⚠️ Review engine (${getReviewEngineMode()}) falhou — fallback LLM: ${deterministicReviewBundle.error || "unknown"}`,
+      );
+    }
+  }
+
+  const executorSuccessWithoutPatches =
+    executorResult &&
+    executorResult.status === "success" &&
+    Array.isArray(changedFiles) &&
+    changedFiles.length === 0;
+
+  if (executorSuccessWithoutPatches) {
+    const okSummaryMarkers = summaryDeclaresNoOpImplementation(
+      executorResult.summary,
+    );
+    const okConcreteEvidence = isConcreteNoOpEvidence(
+      executorResult.evidence,
+    );
+
+    if (!okSummaryMarkers || !okConcreteEvidence) {
+      const blockedDeterministic =
+        buildDeterministicNoOpInsufficientEvidenceReviewResult(
+          acceptanceLevelResolved,
+        );
+
+      const validationBlocked = validateReviewResult(
+        blockedDeterministic,
+        expectedLevel,
+      );
+
+      if (validationBlocked.length === 0) {
+        writePromptSizeRecord(outputDir, "review", {
+          total_prompt_chars: 0,
+          user_chars: 0,
+          system_chars: 0,
+          blocks: {
+            reviewer_agent: 0,
+            user_context: 0,
+            deterministic_no_op_insufficient_evidence: 1,
+          },
+        });
+
+        writeReviewOutputs(out, outputDir, blockedDeterministic, blockedDeterministic.markdown_report);
+
+        appendProblemHistoryEntry({
+          outputDir,
+          projectRoot,
+          step: "review",
+          status: "blocked",
+          severity: "high",
+          type: "review_blocked",
+          title: "NO-OP determinístico rejeitado",
+          summary: blockedDeterministic.summary,
+          cause: "no_op_concrete_evidence_gate",
+          evidence: blockedDeterministic.blocking_issues.map((x) =>
+            String(x).slice(0, 600),
+          ),
+          files: [],
+          model: getModelForStep("review"),
+          usage: null,
+          extra: {
+            acceptance_level: blockedDeterministic.acceptance_level,
+            requires_correction: blockedDeterministic.requires_correction,
+            blocking_issues: blockedDeterministic.blocking_issues || [],
+            warnings: blockedDeterministic.warnings || [],
+          },
+        });
+
+        console.log(
+          "⛔ Review bloqueado (deterministico): evidence de NO-OP insuficiente.",
+        );
+        return;
+      }
+    }
+
+    if (okSummaryMarkers && okConcreteEvidence) {
+      const deterministic = buildDeterministicNoOpReviewResult(
+        executorResult,
+        acceptanceLevelResolved,
+      );
+
+      const validationErrors = validateReviewResult(
+        deterministic,
+        expectedLevel,
+      );
+
+      if (validationErrors.length === 0) {
+        writePromptSizeRecord(outputDir, "review", {
+          total_prompt_chars: 0,
+          user_chars: 0,
+          system_chars: 0,
+          blocks: {
+            reviewer_agent: 0,
+            user_context: 0,
+            deterministic_no_op: 1,
+          },
+        });
+
+        let legacyNoOp = deterministic;
+        if (deterministicReviewBundle && deterministicReviewBundle.ok) {
+          const s = deterministicReviewBundle.review_results.summary;
+          if (
+            s &&
+            (s.status === "rejected" ||
+              s.status === "blocked" ||
+              (s.status === "partial" &&
+                (s.requires_correction || s.requires_manual_review)))
+          ) {
+            legacyNoOp = deterministicReviewBundle.legacy_review;
+          }
+        }
+
+        writeReviewOutputs(out, outputDir, legacyNoOp, legacyNoOp.markdown_report);
+
+        console.log("✅ Review aprovado em NO-OP determinístico (sem LLM).");
+        return;
+      }
+    }
+  }
+
+  if (
+    isDeterministicReviewEnabled() &&
+    deterministicReviewBundle &&
+    deterministicReviewBundle.ok
+  ) {
+    writePromptSizeRecord(outputDir, "review", {
+      total_prompt_chars: 0,
+      user_chars: 0,
+      system_chars: 0,
+      blocks: {
+        reviewer_agent: 0,
+        user_context: 0,
+        deterministic_review_engine: 1,
+      },
+    });
+    const lr = deterministicReviewBundle.legacy_review;
+    writeReviewOutputs(out, outputDir, lr, lr.markdown_report);
+    console.log(
+      `📋 Review determinístico (${getReviewEngineMode()}): ${lr.status}`,
+    );
+    return;
+  }
+
   const realState =
     Array.isArray(changedFiles) && changedFiles.length > 0
-      ? buildChangedFilesEvidence(changedFiles, executorResult, projectRoot)
+      ? buildChangedFilesEvidence(changedFiles, executorResult, projectRoot, virtualOverlay)
       : hasUsableRunContext
-        ? buildRunContextFallbackRealState(runContext, projectRoot)
-        : buildFallbackRealState(architect, projectRoot);
+        ? buildRunContextFallbackRealState(runContext, projectRoot, virtualOverlay)
+        : buildFallbackRealState(architect, projectRoot, virtualOverlay);
 
   const levelHint =
     expectedLevel ??
@@ -713,7 +854,7 @@ ${reviewerAgent}
 
 Regras:
 - Acceptance level esperado: ${levelHint}
-- APPROVED só com evidência suficiente; estado real em disco é a fonte principal quando disponível.
+- ${dryRunReview ? "Modo **dry-run**: quando há patches nesta passagem, os snippets em REAL FILE STATE PATCH EVIDENCE são **virtuais (overlay)** — representam o conteúdo após patches simulados, não necessariamente o disco físico até um apply posterior." : "APPROVED só com evidência suficiente; estado real em disco é a fonte principal quando disponível."}
 - REJECTED implica requires_correction = true (entrega insuficiente para o nível).
 - BLOCKED só por falta de definição, ambiente ou evidência impeditiva (não é ciclo de correção).
         `.trim(),
@@ -721,7 +862,7 @@ Regras:
     {
       role: "user",
       content: `
-# CONTEXT MODE
+${dryRunReview ? `# EXECUTION MODE\n\nDRY RUN — patches desta run **não** foram gravados no projeto-alvo; use executor-changes.json / patch-preview.md para auditoria antes do apply físico.\n\n` : ""}# CONTEXT MODE
 
 ${hasUsableRunContext ? "run-context" : "legacy-fallback"}
 
@@ -762,6 +903,8 @@ ${formatRealStateForPrompt(realState)}
     },
   });
 
+  telemetry.llmCall({ step: "review", model: reviewModel });
+
   const response = await client.responses.create({
     model: reviewModel,
     input: reviewChatInput,
@@ -775,12 +918,18 @@ ${formatRealStateForPrompt(realState)}
     }
   });
 
+  telemetry.llmResponse({ step: "review", model: reviewModel });
+
   recordLLMUsage({
     outputDir,
     step: "review",
     model: reviewModel,
     usage: response.usage,
   });
+
+  if (ctx.cache) {
+    ctx.cache.invalidate(metadataPath);
+  }
 
   const result = JSON.parse(response.output_text);
 
@@ -797,15 +946,7 @@ ${formatRealStateForPrompt(realState)}
       markdown_report: validationErrors.join("\n")
     };
 
-    fs.writeFileSync(
-      path.join(outputDir, "review-output.json"),
-      JSON.stringify(fallback, null, 2)
-    );
-
-    fs.writeFileSync(
-      path.join(outputDir, "review-output.md"),
-      fallback.markdown_report
-    );
+    writeReviewOutputs(out, outputDir, fallback, fallback.markdown_report);
 
     appendProblemHistoryEntry({
       outputDir,
@@ -832,15 +973,7 @@ ${formatRealStateForPrompt(realState)}
     return;
   }
 
-  fs.writeFileSync(
-    path.join(outputDir, "review-output.json"),
-    JSON.stringify(result, null, 2)
-  );
-
-  fs.writeFileSync(
-    path.join(outputDir, "review-output.md"),
-    result.markdown_report
-  );
+  writeReviewOutputs(out, outputDir, result, result.markdown_report);
 
   if (result.status === "blocked") {
     appendProblemHistoryEntry({
@@ -870,9 +1003,58 @@ ${formatRealStateForPrompt(realState)}
       },
     });
   }
+  } finally {
+    let drDoc = null;
+    try {
+      drDoc = finalizeDeterministicReviewObservability(ctx.outputDir, out);
+    } catch (_) {
+      /* Fase 4.11 — evidência apenas; falhas ignoradas */
+    }
+    try {
+      if (drDoc) applyDeterministicReviewGateCliEffects(drDoc);
+    } catch (_) {
+      /* gate best-effort */
+    }
+    try {
+      if (drDoc) {
+        const baselineSummary = finalizeBaselineRegressionForRun(ctx.outputDir, drDoc, out);
+        applyBaselineRegressionGateCliEffects(baselineSummary);
+      }
+    } catch (_) {
+      /* baseline regression gate best-effort */
+    }
+    telemetry.stepEnd("review");
+  }
 }
 
-run().catch((err) => {
-  console.error("❌ Erro no review:", err.message || err);
-  process.exit(1);
-});
+async function main() {
+  const outputArg = process.argv[2];
+
+  if (!outputArg) {
+    console.error("Usage: node scripts/review.js <output-dir>");
+    process.exit(1);
+  }
+
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    console.error(
+      `Usage: node scripts/review.js <runId> — ${err.message || err}`
+    );
+    process.exit(1);
+  }
+
+  const ctx = createStageContextFromOutputDir(outputDir, { runId: outputArg });
+  await runReview(ctx);
+}
+
+module.exports = { runReview };
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("❌ Erro no review:", err.message || err);
+    process.exit(1);
+  });
+}

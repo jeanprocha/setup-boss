@@ -5,13 +5,16 @@ require("dotenv").config();
 const OpenAI = require("openai");
 const runScan = require("./scan");
 const { loadAgent } = require("../core/agent-metadata");
-const { validateArchitectOutput } = require("./validate-architect");
+const { validateArchitectOutput, extractArchitectDecisionJson } = require("./validate-architect");
+const { classifyPrimaryReference } = require("./runtime/context-router");
 const { ensureIA, collectIAContext } = require("./ensure-ia");
 const { getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { getRunId, writeRunIndex } = require("../core/run-resolver");
 const { writePromptSizeRecord } = require("../core/prompt-sizes");
+const { validateTask, extractSection } = require("./shared-utils");
+const { createRuntimeContext } = require("./runtime/runtime-context");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -49,10 +52,11 @@ function compactBlock(name, content, maxChars) {
   return `${head}${warn}${tail}`;
 }
 
-function ensureFile(file, label) {
+function ensureExistsOrThrow(file, label) {
   if (!fs.existsSync(file)) {
-    console.log(`❌ ${label} não encontrado: ${file}`);
-    process.exit(1);
+    const msg = `${label} não encontrado: ${file}`;
+    console.log(`❌ ${msg}`);
+    throw new Error(msg);
   }
 }
 
@@ -69,17 +73,6 @@ function writeJson(file, data) {
 function getArgValue(prefix) {
   const arg = process.argv.find((item) => item.startsWith(prefix));
   return arg ? arg.slice(prefix.length) : null;
-}
-
-function extractSection(content, sectionTitle) {
-  const escaped = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(
-    `## ${escaped}\\s*([\\s\\S]*?)(?=\\n## |$)`,
-    "i"
-  );
-
-  const match = content.match(regex);
-  return match ? match[1] : "";
 }
 
 function compactText(value, maxLength = 600) {
@@ -244,10 +237,16 @@ function buildRunContext({
   architectOutput,
   skipScan,
   violations,
+  architectDecision,
+  architectDecisionJson,
 }) {
   const taskTitle = extractTaskTitle(taskContent, path.basename(taskArg, ".md"));
   const acceptanceLevel = extractExpectedAcceptanceLevel(taskContent);
   const allowedFiles = extractAllowedFilesFromArchitect(architectOutput);
+  const classification = classifyPrimaryReference(
+    allowedFiles,
+    architectDecisionJson || null,
+  );
   const risks = extractRisks(architectOutput);
   const stopCriteria = extractStopCriteria(architectOutput);
   const acceptanceCriteria = extractAcceptanceCriteria(taskContent);
@@ -270,6 +269,11 @@ function buildRunContext({
     architect: {
       status: violations.length === 0 ? "approved" : "blocked",
       violations,
+      task_valid:
+        architectDecision &&
+        typeof architectDecision.task_valid === "boolean"
+          ? architectDecision.task_valid
+          : null,
       allowed_files: allowedFiles,
       plan_summary: extractPlanSummary(architectOutput),
       risks,
@@ -278,6 +282,9 @@ function buildRunContext({
     execution_context: {
       scan_skipped: Boolean(skipScan),
       allowed_files: allowedFiles,
+      primary_files: classification.primary_files,
+      reference_files: classification.reference_files,
+      file_classification_source: classification.source,
       review_focus: [
         ...acceptanceCriteria.slice(0, 8),
         ...risks.slice(0, 4),
@@ -286,29 +293,7 @@ function buildRunContext({
   };
 }
 
-function validateTask(taskContent) {
-  if (!taskContent.includes("## Acceptance Level")) {
-    throw new Error("TASK_INVALID: Acceptance Level ausente");
-  }
-
-  if (!taskContent.includes("## Acceptance Criteria")) {
-    throw new Error("TASK_INVALID: Acceptance Criteria ausente");
-  }
-
-  const acceptanceLevelBody = extractSection(taskContent, "Acceptance Level");
-
-  if (!acceptanceLevelBody.trim()) {
-    throw new Error("TASK_INVALID: seção Acceptance Level vazia ou inválida");
-  }
-
-  const matches = acceptanceLevelBody.match(/\[x\]/gi) || [];
-
-  if (matches.length !== 1) {
-    throw new Error("TASK_INVALID: exatamente um Acceptance Level deve ser selecionado");
-  }
-}
-
-function loadPreservedLlmUsage(outputDir) {
+function loadPreservedLlmUsage(outputDir, io) {
   const metaPath = path.join(outputDir, "metadata.json");
   const emptyTotal = {
     input_tokens: 0,
@@ -317,12 +302,17 @@ function loadPreservedLlmUsage(outputDir) {
     estimated_cost_usd: null,
   };
 
-  if (!fs.existsSync(metaPath)) {
+  const exists = io ? io.existsSync(metaPath) : fs.existsSync(metaPath);
+
+  if (!exists) {
     return { llm_usage: {}, llm_usage_total: { ...emptyTotal } };
   }
 
   try {
-    const prev = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+    const raw = io
+      ? io.readFileSync(metaPath, "utf-8")
+      : fs.readFileSync(metaPath, "utf-8");
+    const prev = JSON.parse(raw);
     const llm_usage =
       prev.llm_usage && typeof prev.llm_usage === "object"
         ? prev.llm_usage
@@ -338,44 +328,59 @@ function loadPreservedLlmUsage(outputDir) {
   }
 }
 
-async function main() {
-  const taskArg = process.argv[2];
-  const projectArg = process.argv[3];
+async function runArchitect(ctx, opts = {}) {
+  const io = ctx.cache;
+  const skipScan = opts.skipScan === true;
+  const exitOnFailure = opts.exitOnFailure === true;
 
-  const skipScan = process.argv.includes("--skip-scan");
-  const providedRunId = getArgValue("--run-id=");
+  const taskArg = ctx.taskArg;
+  const projectArg = ctx.projectArg;
+  const outputDirName = ctx.runId;
+  const outputDir = ctx.outputDir;
+  const rootDir = ctx.rootDir;
 
   console.log("[ARCHITECT] start");
   console.log("[ARCHITECT] taskArg:", taskArg);
   console.log("[ARCHITECT] projectArg:", projectArg);
   console.log("[ARCHITECT] skipScan:", skipScan);
-  console.log("[ARCHITECT] providedRunId:", providedRunId);
+  ctx.telemetry.stepStart("architect");
 
-  if (!taskArg || !projectArg) {
-    console.log("Uso: npm run architect tasks/exemplo.md ../landing-sofas");
-    process.exit(1);
-  }
-
-  if (!process.env.OPENAI_API_KEY) {
-    console.log("❌ OPENAI_API_KEY não encontrada no .env");
-    process.exit(1);
-  }
-
-  const taskPath = path.resolve(ROOT_DIR, taskArg);
-  const projectRoot = path.resolve(ROOT_DIR, projectArg);
+  const taskPath = path.resolve(rootDir, taskArg);
+  const projectRoot = path.resolve(rootDir, projectArg);
   const projectSetupDir = path.join(projectRoot, ".setup-boss");
   const projectName = path.basename(projectRoot);
 
-  ensureFile(taskPath, "Task");
-  ensureFile(projectRoot, "Projeto alvo");
+  if (!taskArg || !projectArg) {
+    const msg = "Uso: npm run architect tasks/exemplo.md ../landing-sofas";
+    console.log(msg);
+    if (exitOnFailure) process.exit(1);
+    throw new Error(msg);
+  }
 
-  const task = fs.readFileSync(taskPath, "utf-8");
+  if (!process.env.OPENAI_API_KEY) {
+    const msg = "OPENAI_API_KEY não encontrada no .env";
+    console.log(`❌ ${msg}`);
+    if (exitOnFailure) process.exit(1);
+    throw new Error(msg);
+  }
+
+  if (!fs.existsSync(taskPath)) {
+    console.log(`❌ Task não encontrado: ${taskPath}`);
+    if (exitOnFailure) process.exit(1);
+    throw new Error(`Task não encontrado: ${taskPath}`);
+  }
+
+  if (!fs.existsSync(projectRoot)) {
+    console.log(`❌ Projeto alvo não encontrado: ${projectRoot}`);
+    if (exitOnFailure) process.exit(1);
+    throw new Error(`Projeto alvo não encontrado: ${projectRoot}`);
+  }
+
+  const task = io.readFileSync(taskPath, "utf-8");
   validateTask(task);
 
-  const outputDirName = providedRunId || getRunId(taskArg);
   const projectIADir = path.join(projectRoot, ".IA");
   const outputsDirBase = path.join(projectIADir, "outputs");
-  const outputDir = path.join(outputsDirBase, outputDirName);
 
   ensureDir(projectIADir);
   ensureDir(outputsDirBase);
@@ -398,14 +403,14 @@ async function main() {
     });
   }
 
-  const agentPath = path.join(ROOT_DIR, "agents", "architect.md");
+  const agentPath = path.join(rootDir, "agents", "architect.md");
   const projectScanPath = path.join(projectSetupDir, "project-scan.md");
 
-  ensureFile(agentPath, "agents/architect.md");
-  ensureFile(projectScanPath, "project-scan.md");
+  ensureExistsOrThrow(agentPath, "agents/architect.md");
+  ensureExistsOrThrow(projectScanPath, "project-scan.md");
 
   const { content: architectPrompt, metadata: agentMeta } = loadAgent(agentPath);
-  const projectScan = fs.readFileSync(projectScanPath, "utf-8");
+  const projectScan = io.readFileSync(projectScanPath, "utf-8");
   const limitedProjectScan = compactBlock(
     "project_scan",
     projectScan,
@@ -475,7 +480,7 @@ ${task}
     },
   });
 
-  fs.writeFileSync(
+  io.writeFileSync(
     path.join(outputDir, "architect-input.md"),
     fullPrompt,
     "utf-8"
@@ -486,19 +491,24 @@ ${task}
 
   const architectModel = getModelForStep("architect");
 
+  ctx.telemetry.llmCall({ step: "architect", model: architectModel });
+
   const response = await client.responses.create({
     model: architectModel,
     input: fullPrompt,
   });
 
+  ctx.telemetry.llmResponse({ step: "architect", model: architectModel });
+
   console.log("[ARCHITECT] after OpenAI responses.create");
 
   const architectOutput = response.output_text || "";
   console.log("[ARCHITECT] before validateArchitectOutput");
-  const violations = validateArchitectOutput(architectOutput);
+  const validationResult = validateArchitectOutput(architectOutput);
+  const violations = validationResult.violations;
   console.log("[ARCHITECT] violations:", violations);
 
-  const preservedLlm = loadPreservedLlmUsage(outputDir);
+  const preservedLlm = loadPreservedLlmUsage(outputDir, io);
 
   const metadata = {
     runId: outputDirName,
@@ -530,6 +540,7 @@ ${task}
       architect: {
         status: violations.length === 0 ? "approved" : "blocked",
         violations,
+        invalid_task: Boolean(validationResult.invalid_task),
       },
     },
     agents: {
@@ -538,6 +549,8 @@ ${task}
     llm_usage: preservedLlm.llm_usage,
     llm_usage_total: preservedLlm.llm_usage_total,
   };
+
+  const fullDecisionExtract = extractArchitectDecisionJson(architectOutput);
 
   const runContext = buildRunContext({
     outputDirName,
@@ -548,9 +561,11 @@ ${task}
     architectOutput,
     skipScan,
     violations,
+    architectDecision: validationResult.architect_decision || null,
+    architectDecisionJson: fullDecisionExtract.ok ? fullDecisionExtract.decision : null,
   });
 
-  writeJson(path.join(outputDir, "metadata.json"), metadata);
+  io.writeJsonSync(path.join(outputDir, "metadata.json"), metadata);
 
   recordLLMUsage({
     outputDir,
@@ -559,53 +574,200 @@ ${task}
     usage: response.usage,
   });
 
-  fs.writeFileSync(path.join(outputDir, "task.md"), task, "utf-8");
+  io.invalidate(path.join(outputDir, "metadata.json"));
 
-  fs.writeFileSync(
+  io.writeFileSync(path.join(outputDir, "task.md"), task, "utf-8");
+
+  io.writeFileSync(
     path.join(outputDir, "architect-output.md"),
     architectOutput,
     "utf-8"
   );
 
-  writeJson(path.join(outputDir, "run-context.json"), runContext);
+  io.writeJsonSync(path.join(outputDir, "run-context.json"), runContext);
 
-  writeJson(path.join(outputDir, "architect-validation.json"), {
+  io.writeJsonSync(path.join(outputDir, "architect-validation.json"), {
     status: violations.length === 0 ? "approved" : "blocked",
     violations,
     checked_at: new Date().toISOString(),
+    invalid_task: Boolean(validationResult.invalid_task),
+    task_valid:
+      validationResult.architect_decision &&
+      typeof validationResult.architect_decision.task_valid === "boolean"
+        ? validationResult.architect_decision.task_valid
+        : null,
+    architect_decision: validationResult.architect_decision || null,
   });
 
   if (violations.length > 0) {
-    console.log("❌ Architect bloqueado por enforcement:");
-    for (const violation of violations) {
-      console.log(`- ${violation}`);
+    if (validationResult.invalid_task) {
+      console.log("\n" + violations[0]);
+      console.log(
+        "\nEscopo inconsistente, definições em falta ou impossível validar/executar com segurança. Corrija a task antes de prosseguir."
+      );
+
+      appendProblemHistoryEntry({
+        outputDir,
+        step: "architect",
+        status: "blocked",
+        severity: "medium",
+        type: "invalid_task",
+        title: "Task inválida para execução automática (task_valid=false)",
+        summary: String(violations[0] || "").slice(0, 1200),
+        cause: "task_valid_false",
+        evidence: [
+          String(violations[0] || "").slice(0, 2000),
+          ...(validationResult.architect_decision &&
+          Array.isArray(validationResult.architect_decision.risks)
+            ? validationResult.architect_decision.risks.map((x) =>
+                String(x).slice(0, 400)
+              )
+            : []),
+        ].slice(0, 25),
+        files: [],
+        model: architectModel,
+        usage: response.usage,
+        extra: {
+          invalid_task: true,
+          architect_decision: validationResult.architect_decision || null,
+        },
+      });
+    } else {
+      console.log("❌ Architect bloqueado por enforcement:");
+      for (const violation of violations) {
+        console.log(`- ${violation}`);
+      }
+
+      appendProblemHistoryEntry({
+        outputDir,
+        step: "architect",
+        status: "blocked",
+        severity: "high",
+        type: "architect_blocked",
+        title: "Architect bloqueado por enforcement",
+        summary: `Violações de enforcement: ${violations.length}`,
+        cause: "enforcement_violations",
+        evidence: violations.map((v) => String(v).slice(0, 600)),
+        files: [],
+        model: architectModel,
+        usage: response.usage,
+        extra: {
+          violation_count: violations.length,
+        },
+      });
     }
 
-    appendProblemHistoryEntry({
-      outputDir,
-      step: "architect",
-      status: "blocked",
-      severity: "high",
-      type: "architect_blocked",
-      title: "Architect bloqueado por enforcement",
-      summary: `Violações de enforcement: ${violations.length}`,
-      cause: "enforcement_violations",
-      evidence: violations.map((v) => String(v).slice(0, 600)),
-      files: [],
-      model: architectModel,
-      usage: response.usage,
-      extra: {
-        violation_count: violations.length,
-      },
-    });
+    const runContextPath = path.join(outputDir, "run-context.json");
 
-    process.exit(1);
+    const failureResult = {
+      success: false,
+      retryable: false,
+      errorType: validationResult.invalid_task
+        ? "ARCHITECT_INVALID_TASK"
+        : "ARCHITECT_BLOCKED",
+      message: String(violations[0] || "Architect bloqueado"),
+      outputDir,
+      runContextPath,
+      validation: {
+        status: "blocked",
+        violations,
+        invalid_task: Boolean(validationResult.invalid_task),
+      },
+      metadata,
+      runContext,
+    };
+
+    ctx.telemetry.stepEnd("architect");
+
+    if (exitOnFailure) {
+      process.exit(1);
+    }
+
+    return failureResult;
   }
 
   console.log("✅ Architect concluído:", outputDirName);
   console.log(`npm run executor ${outputDirName}`);
+
+  ctx.metadata = metadata;
+  ctx.runContext = runContext;
+
+  ctx.telemetry.stepEnd("architect");
+
+  return {
+    success: true,
+    outputName: outputDirName,
+    outputDir,
+    runContextPath: path.join(outputDir, "run-context.json"),
+    validation: {
+      status: "approved",
+      violations: [],
+    },
+    metadata,
+    runContext,
+  };
 }
 
+async function main() {
+  const taskArg = process.argv[2];
+  const projectArg = process.argv[3];
+
+  const skipScan = process.argv.includes("--skip-scan");
+  const providedRunId = getArgValue("--run-id=");
+
+  console.log("[ARCHITECT] providedRunId:", providedRunId);
+
+  if (!taskArg || !projectArg) {
+    console.log("Uso: npm run architect tasks/exemplo.md ../landing-sofas");
+    process.exit(1);
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    console.log("❌ OPENAI_API_KEY não encontrada no .env");
+    process.exit(1);
+  }
+
+  const taskPath = path.resolve(ROOT_DIR, taskArg);
+  const projectRoot = path.resolve(ROOT_DIR, projectArg);
+
+  if (!fs.existsSync(taskPath)) {
+    console.log(`❌ Task não encontrado: ${taskPath}`);
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(projectRoot)) {
+    console.log(`❌ Projeto alvo não encontrado: ${projectRoot}`);
+    process.exit(1);
+  }
+
+  validateTask(fs.readFileSync(taskPath, "utf-8"));
+
+  const outputDirName = providedRunId || getRunId(taskArg);
+  const projectIADir = path.join(projectRoot, ".IA");
+  const outputsDirBase = path.join(projectIADir, "outputs");
+  const outputDir = path.join(outputsDirBase, outputDirName);
+
+  ensureDir(projectIADir);
+  ensureDir(outputsDirBase);
+  ensureDir(outputDir);
+
+  const ctx = createRuntimeContext({
+    rootDir: ROOT_DIR,
+    runId: outputDirName,
+    taskArg,
+    projectArg,
+    projectRoot,
+    projectPath: projectArg,
+    taskPath,
+    outputDir,
+  });
+
+  await runArchitect(ctx, { skipScan, exitOnFailure: true });
+}
+
+module.exports = { runArchitect };
+
+if (require.main === module) {
 main().catch((error) => {
   console.error("❌ Erro:", error.message || error);
 
@@ -670,3 +832,4 @@ main().catch((error) => {
 
   process.exit(1);
 });
+}

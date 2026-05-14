@@ -1,0 +1,34 @@
+/**
+ * Artefactos e versões — Correction Runtime V2 (Fase 4.5).
+ */
+
+const CORRECTION_ANALYSIS_FILENAME = "correction-analysis.json";
+const CORRECTION_MEMORY_FILENAME = "correction-memory/correction-memory.json";
+const CORRECTION_LINEAGE_FILENAME = "correction-lineage.json";
+const CORRECTION_RUNTIME_MANIFEST_FILENAME = "correction-runtime-manifest.json";
+const CORRECTION_RUNTIME_TELEMETRY_LOG = "correction-runtime-telemetry.ndjson";
+
+/** Semantic Dependency Runtime — mesmos nomes que review/risk */
+const CORRECTION_SEMANTIC_PROPAGATION_MANIFEST_REF = "propagation-manifest.json";
+const CORRECTION_SEMANTIC_MUTATION_GRAPH_REF = "semantic-mutation-graph.json";
+const CORRECTION_SEMANTIC_PROPAGATION_ARTIFACT = "correction-semantic-propagation.json";
+
+const SCHEMA_VERSION_ANALYSIS = 1;
+const SCHEMA_VERSION_MEMORY = 1;
+const SCHEMA_VERSION_LINEAGE = 1;
+const SCHEMA_VERSION_MANIFEST = 1;
+
+module.exports = {
+  CORRECTION_ANALYSIS_FILENAME,
+  CORRECTION_MEMORY_FILENAME,
+  CORRECTION_LINEAGE_FILENAME,
+  CORRECTION_RUNTIME_MANIFEST_FILENAME,
+  CORRECTION_RUNTIME_TELEMETRY_LOG,
+  CORRECTION_SEMANTIC_PROPAGATION_MANIFEST_REF,
+  CORRECTION_SEMANTIC_MUTATION_GRAPH_REF,
+  CORRECTION_SEMANTIC_PROPAGATION_ARTIFACT,
+  SCHEMA_VERSION_ANALYSIS,
+  SCHEMA_VERSION_MEMORY,
+  SCHEMA_VERSION_LINEAGE,
+  SCHEMA_VERSION_MANIFEST,
+};

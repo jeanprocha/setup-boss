@@ -21,6 +21,17 @@ O comando **`npm run run`** automatiza até **knowledge** quando o review fica *
 - **Review JSON-first** — **`review-output.json`**; uso de **run-context** quando válido para prompts mais curtos (**scripts/review.js** e leitura de artefactos).
 - **Modelos por etapa** — **`core/llm-client.js`**, variáveis **`ARCHITECT_MODEL`**, **`EXECUTOR_MODEL`**, etc., fallback **`OPENAI_MODEL`**.
 - **Tracking** — **`core/llm-usage.js`**; **`metadata.json`** com **`llm_usage`** (por chave de etapa) e **`llm_usage_total`** em **`<projeto>/.IA/outputs/<run>/`**; inclui **`scan`**, **`ensure_ia`**, **`semantic_ia`** quando aplicável ao fluxo.
+- **Fase 4.9 — Hybrid Executor Runtime** — ramo **opt-in** no executor: structural-first com **fallback textual**, relatórios de governança/replay **shadow**, observabilidade consolidada; marco **encerrado** documentalmente (**`docs/hybrid-runtime-release-readiness.md`**, **`docs/hybrid-runtime-lifecycle.md`**).
+- **Fase 4.10 — Validation Runtime (execução local / plano declarativo)** — `validation-plan.json`, executor sync, cache passed-only, summary, `dependency-graph.json`, planning graph-aware em metadatos; **encerrada** em **`docs/validation-runtime-phase410-release-readiness.md`**.
+- **Fase 4.11 — Deterministic Review Runtime** — `deterministic-review.json`, `risk_summary`, gates opcionais (risco + baseline), diff/baseline via CLI; **encerrada** em **`docs/deterministic-review-phase411-release-readiness.md`** (observacional por defeito).
+- **Fase 4.12.1 — Execution Graph Model** — modelo estrutural + `execution-graph.json` em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH`); **sem** scheduler nem mudanças em `orchestration.js`. Ver **`docs/execution-graph-runtime/phase-4-12-1-execution-graph-model.md`**.
+- **Fase 4.12.2 — Graph State Runtime** — `execution-graph-runtime.json` (estado por nó, transições validadas, snapshot inicial em shadow — `SETUP_BOSS_EXECUTION_GRAPH_RUNTIME`). Ver **`docs/execution-graph-runtime/phase-4-12-2-graph-state-runtime.md`**.
+- **Fase 4.12.3 — Graph Scheduler MVP** — scheduler **serial** + relatório **`execution-graph-scheduler-report.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_SCHEDULER`); advisory-only. Ver **`docs/execution-graph-runtime/phase-4-12-3-graph-scheduler-mvp.md`**.
+- **Fase 4.12.4 — Pipeline Overlay Mode** — comparação linear vs DAG + relatório **`execution-graph-overlay-report.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_OVERLAY`); advisory-only. Ver **`docs/execution-graph-runtime/phase-4-12-4-pipeline-overlay-mode.md`**.
+- **Fase 4.12.5 — Runtime Node Adapters** — adapters finos (descritores + contratos + capability matrix) + artefacto derivado **`execution-graph-node-adapters.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_NODE_ADAPTERS`); **sem** invocar `scan`/`executor`/etc. Ver **`docs/execution-graph-runtime/phase-4-12-5-runtime-node-adapters.md`**.
+- **Fase 4.12.6 — Graph Replay Runtime (advisory)** — planeamento de subárvore, invalidação downstream e relatório **`execution-graph-replay-report.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_REPLAY`); **sem** executar pipeline nem handlers. Ver **`docs/execution-graph-runtime/phase-4-12-6-graph-replay-runtime.md`**.
+- **Fase 4.12.8 — Graph Risk / Deadlock Detection** — análise read-only (ciclos, órfãos, blocked, replay/scheduler/runtime) + **`execution-graph-risk-report.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_RISK`). Ver **`docs/execution-graph-runtime/phase-4-12-8-graph-risk-deadlock-detection.md`**.
+- **Fase 4.12.9 — Execution Graph Release Readiness** — validação consolidada (integridade, fingerprints, flags, isolamento shadow) + **`execution-graph-release-readiness.json`** em modo **shadow** (`SETUP_BOSS_EXECUTION_GRAPH_RELEASE_READINESS`); **encerra** a 4.12 como camada **advisory**. Ver **`docs/execution-graph-runtime/phase-4-12-9-release-readiness.md`**.
 
 ---
 
@@ -36,10 +47,15 @@ O comando **`npm run run`** automatiza até **knowledge** quando o review fica *
 - Caminhos locais determinísticos onde fizer sentido.
 - API só onde o ganho compensar custo e complexidade.
 
-### STEP 6 — Executor híbrido (mais determinístico)
+### STEP 6 — Executor híbrido (evolução contínua)
 
-- Mais edições guiadas por estrutura (marcadores, slots), mantendo PATCH onde for necessário.
-- Parsing mais rígido quando o stack do projeto permitir.
+- A **linha base** da Fase **4.9** está **entregue e estável sob uso controlado** (flags, artefactos, release readiness — ver **`docs/hybrid-runtime-release-readiness.md`**).
+- **Seguinte:** mais edições guiadas por estrutura (marcadores, slots), parsing mais rígido por stack, e extensões **fora** do MVP actual (ex.: cobertura semântica / transacções), sempre preservando invariantes de PATCH e **`allowed_files`**.
+
+### STEP 7 — Pós 4.10 / 4.11 (targeting e impacto)
+
+- As fases **4.10** e **4.11** estão **fechadas** (**`docs/validation-runtime-phase410-release-readiness.md`**, **`docs/deterministic-review-phase411-release-readiness.md`**).
+- **Seguinte (4.12+):** overlays de impacto vs execução, inspecção cruzada candidatos ↔ resultados / findings, evolução opcional do grafo sem tornar o executor obrigatoriamente dependente dele (ver **`docs/validation-targeting-phase412.md`** quando aplicável). **4.12.1** modelo + **`execution-graph.json`**; **4.12.2** estado + **`execution-graph-runtime.json`**; **4.12.3** scheduler **advisory** + **`execution-graph-scheduler-report.json`**; **4.12.4** overlay **advisory** + **`execution-graph-overlay-report.json`**; **4.12.5** adapters + **`execution-graph-node-adapters.json`**; **4.12.6** replay **advisory** + **`execution-graph-replay-report.json`**; **4.12.8** risk **read-only** + **`execution-graph-risk-report.json`** (ver **`docs/execution-graph-runtime/phase-4-12-1-execution-graph-model.md`**, **`docs/execution-graph-runtime/phase-4-12-2-graph-state-runtime.md`**, **`docs/execution-graph-runtime/phase-4-12-3-graph-scheduler-mvp.md`**, **`docs/execution-graph-runtime/phase-4-12-4-pipeline-overlay-mode.md`**, **`docs/execution-graph-runtime/phase-4-12-5-runtime-node-adapters.md`**, **`docs/execution-graph-runtime/phase-4-12-6-graph-replay-runtime.md`**, **`docs/execution-graph-runtime/phase-4-12-8-graph-risk-deadlock-detection.md`**).
 
 ---
 

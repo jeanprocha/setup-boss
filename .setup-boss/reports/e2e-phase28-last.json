@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-05-14T02:37:06.498Z",
+  "repo_root": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss",
+  "ok": true,
+  "scenarios": [
+    {
+      "name": "validate-run-artifacts + manifest íntegro (fixture)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "lifecycle: manifest stale após mutação de executor-changes",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "governance STRICT: dry-run obrigatório (runtime core signal)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "recovery: classificação timeout / search_not_found / retry budget",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "CLI resiliente: JSON corrupto em artefactos — summarize não explode",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "resume-engine: próxima fase após executor falho (artefactos mínimos)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "validate-run-artifacts CLI (subprocess)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "setup-boss doctor + list (subprocess)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "continuity.test.js (node --test)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "governance.test.js (node --test)",
+      "ok": true,
+      "error": null
+    },
+    {
+      "name": "recovery.test.js (node)",
+      "ok": true,
+      "error": null
+    }
+  ],
+  "edge_cases_observed": [],
+  "corrections_applied_summary": [],
+  "golden_paths_documentation": [
+    "Cenário A (task→approved→apply): requer OPENAI_API_KEY e projeto real — ver docs/operator-guide.md",
+    "Cenário B (dry-run→inspect→apply-later): fluxo em docs/dry-run.md e docs/replay-and-resume.md",
+    "Cenário C (executor failure→recovery): políticas em docs/recovery-system.md",
+    "Cenário D (resume após interrupção): docs/replay-and-resume.md § Resume",
+    "Cenário E (STRICT+governance): coberto nesta suite (evaluateRuntimeGovernance) + docs/governance.md"
+  ]
+}

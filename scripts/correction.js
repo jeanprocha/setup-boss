@@ -8,6 +8,16 @@ const { recordLLMUsage } = require("../core/llm-usage");
 const { appendProblemHistoryEntry } = require("../core/problem-history");
 const { resolveOutputDir } = require("../core/run-resolver");
 const { writePromptSizeRecord } = require("../core/prompt-sizes");
+const {
+  compactText,
+  isUsableRunContextStrict,
+  buildCompactRunContextForPrompt,
+} = require("./shared-utils");
+const { createStageContextFromOutputDir } = require("./runtime/runtime-context");
+const { createOutputFs } = require("./runtime/output-fs");
+const { isCorrectionIntelligenceEnabled } = require("./correction-runtime/feature-flags");
+const { persistFullCorrectionArtifacts } = require("./correction-runtime/correction-pipeline");
+const { CORRECTION_ANALYSIS_FILENAME } = require("./correction-runtime/constants");
 
 const client = createLLMClient();
 
@@ -19,6 +29,10 @@ const MAX_REVIEW_MD_CHARS = Number(
 
 const MAX_LEGACY_TASK_CHARS = Number(
   process.env.CORRECTION_LEGACY_TASK_CHARS || 4000
+);
+
+const MAX_CORRECTION_INTEL_PROMPT_CHARS = Number(
+  process.env.CORRECTION_INTEL_PROMPT_CHARS || 3600,
 );
 
 function ensureFile(file, label) {
@@ -41,54 +55,6 @@ function readJsonIfExists(filePath, fallback) {
   } catch (_) {
     return fallback;
   }
-}
-
-function compactText(value, maxLength) {
-  const text = String(value || "").trim();
-
-  if (!maxLength || text.length <= maxLength) return text;
-
-  return `${text.slice(0, maxLength - 1).trim()}…`;
-}
-
-function isUsableRunContext(runContext) {
-  if (!runContext || typeof runContext !== "object") return false;
-
-  const allowedFiles =
-    runContext.execution_context &&
-    Array.isArray(runContext.execution_context.allowed_files)
-      ? runContext.execution_context.allowed_files
-      : runContext.architect &&
-          Array.isArray(runContext.architect.allowed_files)
-        ? runContext.architect.allowed_files
-        : [];
-
-  return (
-    allowedFiles.length > 0 &&
-    runContext.task &&
-    typeof runContext.task === "object"
-  );
-}
-
-function buildCompactRunContextForPrompt(runContext) {
-  return JSON.stringify(
-    {
-      version: runContext.version,
-      run_id: runContext.run_id,
-      project: runContext.project,
-      task: runContext.task,
-      architect: {
-        status: runContext.architect && runContext.architect.status,
-        allowed_files: runContext.architect && runContext.architect.allowed_files,
-        plan_summary: runContext.architect && runContext.architect.plan_summary,
-        risks: runContext.architect && runContext.architect.risks,
-        stop_criteria: runContext.architect && runContext.architect.stop_criteria,
-      },
-      execution_context: runContext.execution_context,
-    },
-    null,
-    2
-  );
 }
 
 function buildLegacyContextForPrompt(task) {
@@ -117,22 +83,15 @@ function buildLeanReview(review) {
   };
 }
 
-async function main() {
-  const outputArg = process.argv[2];
+async function runCorrection(ctx, opts = {}) {
+  const exitOnFailure = opts.exitOnFailure === true;
+  const out = createOutputFs(ctx.cache);
+  const telemetry = ctx.telemetry;
 
-  if (!outputArg) {
-    console.log("Uso: npm run correction <runId>");
-    process.exit(1);
-  }
-
-  let outputDir;
+  telemetry.stepStart("correction");
 
   try {
-    outputDir = resolveOutputDir(outputArg);
-  } catch (err) {
-    console.error(err.message || err);
-    process.exit(1);
-  }
+  const outputDir = ctx.outputDir;
 
   ensureFile(outputDir, "Pasta de output");
 
@@ -143,29 +102,85 @@ async function main() {
 
   ensureFile(reviewJsonPath, "review-output.json");
 
-  const review = JSON.parse(fs.readFileSync(reviewJsonPath, "utf-8"));
-  const reviewMd = compactText(readIfExists(reviewMdPath), MAX_REVIEW_MD_CHARS);
+  const review = out
+    ? out.readJson(reviewJsonPath)
+    : JSON.parse(fs.readFileSync(reviewJsonPath, "utf-8"));
+  const reviewMd = compactText(
+    out ? out.readIfExists(reviewMdPath) : readIfExists(reviewMdPath),
+    MAX_REVIEW_MD_CHARS,
+  );
 
   if (review.status === "approved") {
     console.log("⚠️ Review já aprovado. Nenhuma correção necessária.");
-    process.exit(0);
+    if (exitOnFailure) process.exit(0);
+    return { success: true, skipped: true };
   }
 
   if (!review.requires_correction) {
     console.log("❌ Review não aprovou, mas não pediu correção.");
-    process.exit(1);
+    if (exitOnFailure) process.exit(1);
+    return {
+      success: false,
+      retryable: false,
+      errorType: "CORRECTION_NOT_REQUESTED",
+      message: "Review não pediu correção.",
+    };
   }
 
-  const runContext = readJsonIfExists(runContextPath, null);
-  const hasUsableRunContext = isUsableRunContext(runContext);
+  try {
+    if (review.requires_correction && isCorrectionIntelligenceEnabled()) {
+      persistFullCorrectionArtifacts({
+        outputDir,
+        telemetry,
+        hintsOverride: null,
+      });
+    }
+  } catch (_) {}
+
+  let runtimeGuidanceBlock = "";
+  try {
+    const intelPath = path.join(outputDir, CORRECTION_ANALYSIS_FILENAME);
+    if (review.requires_correction && isCorrectionIntelligenceEnabled() && fs.existsSync(intelPath)) {
+      const intelRaw = fs.readFileSync(intelPath, "utf-8");
+      const intelParsed = JSON.parse(intelRaw);
+      const compactGuide = JSON.stringify(
+        {
+          correction_analysis_id: intelParsed.correction_analysis_id || null,
+          summary: intelParsed.summary || {},
+          targets_top: Array.isArray(intelParsed.correction_targets)
+            ? intelParsed.correction_targets.slice(0, 28)
+            : [],
+          failures_sample: Array.isArray(intelParsed.failures)
+            ? intelParsed.failures.slice(0, 18)
+            : [],
+          recommendation_slice: Array.isArray(intelParsed.recommendations)
+            ? intelParsed.recommendations.slice(0, 18)
+            : [],
+        },
+        null,
+        2,
+      );
+      runtimeGuidanceBlock = `\n\n## RUNTIME-GUIDED REMEDIATION\n\nCopia integral das prioridades seguintes antes de PATCH amplo:\n\n\`\`\`json\n${compactText(compactGuide, MAX_CORRECTION_INTEL_PROMPT_CHARS)}\n\`\`\`\n`;
+    }
+  } catch (_) {}
+
+  const runContext = out
+    ? out.readJsonIfExists(runContextPath, null)
+    : readJsonIfExists(runContextPath, null);
+  const hasUsableRunContext = isUsableRunContextStrict(runContext);
 
   let promptContext;
 
   if (hasUsableRunContext) {
-    promptContext = buildCompactRunContextForPrompt(runContext);
+    promptContext = buildCompactRunContextForPrompt(runContext, {
+      mode: "correction",
+      safeWhitespaceCompact: true,
+    });
   } else {
     ensureFile(taskPath, "task.md");
-    const task = fs.readFileSync(taskPath, "utf-8");
+    const task = out
+      ? out.readUtf8(taskPath)
+      : fs.readFileSync(taskPath, "utf-8");
     promptContext = buildLegacyContextForPrompt(task);
   }
 
@@ -189,6 +204,7 @@ ${promptContext}
 \`\`\`json
 ${JSON.stringify(buildLeanReview(review), null, 2)}
 \`\`\`
+${runtimeGuidanceBlock || ""}
 
 ## REVIEW EXPLANATION (TRUNCATED)
 
@@ -217,10 +233,14 @@ Regras adicionais:
 
   const correctionModel = getModelForStep("correction");
 
+  telemetry.llmCall({ step: "correction", model: correctionModel });
+
   const response = await client.responses.create({
     model: correctionModel,
     input: prompt,
   });
+
+  telemetry.llmResponse({ step: "correction", model: correctionModel });
 
   const generated = String(response.output_text || "").trim();
 
@@ -244,16 +264,16 @@ Regras adicionais:
     });
   }
 
-  fs.writeFileSync(
-    path.join(outputDir, "correction-instructions.md"),
-    generated,
-    "utf-8"
-  );
+  const corrPath = path.join(outputDir, "correction-instructions.md");
+  if (out) out.writeUtf8(corrPath, generated);
+  else fs.writeFileSync(corrPath, generated, "utf-8");
 
   const metadataPath = path.join(outputDir, "metadata.json");
 
-  if (fs.existsSync(metadataPath)) {
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+  if (out ? out.exists(metadataPath) : fs.existsSync(metadataPath)) {
+    const metadata = out
+      ? out.readJson(metadataPath)
+      : JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
 
     metadata.agents = {
       ...metadata.agents,
@@ -267,7 +287,13 @@ Regras adicionais:
       },
     };
 
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    if (out) out.writeJson(metadataPath, metadata);
+    else
+      fs.writeFileSync(
+        metadataPath,
+        JSON.stringify(metadata, null, 2),
+        "utf-8",
+      );
   }
 
   recordLLMUsage({
@@ -277,11 +303,44 @@ Regras adicionais:
     usage: response.usage,
   });
 
+  if (ctx.cache) {
+    ctx.cache.invalidate(metadataPath);
+  }
+
   console.log(
     `✅ correction-instructions.md gerado (${hasUsableRunContext ? "run-context" : "legacy-fallback"})`
   );
+
+  return { success: true, outputDir };
+  } finally {
+    telemetry.stepEnd("correction");
+  }
 }
 
+async function main() {
+  const outputArg = process.argv[2];
+
+  if (!outputArg) {
+    console.log("Uso: npm run correction <runId>");
+    process.exit(1);
+  }
+
+  let outputDir;
+
+  try {
+    outputDir = resolveOutputDir(outputArg);
+  } catch (err) {
+    console.error(err.message || err);
+    process.exit(1);
+  }
+
+  const ctx = createStageContextFromOutputDir(outputDir, { runId: outputArg });
+  await runCorrection(ctx, { exitOnFailure: true });
+}
+
+module.exports = { runCorrection };
+
+if (require.main === module) {
 main().catch((err) => {
   console.error("❌ Erro no correction:", err.message || err);
 
@@ -325,4 +384,5 @@ main().catch((err) => {
   } catch (_) {}
 
   process.exit(1);
-});
+  });
+}

@@ -103,6 +103,27 @@ Em alguns ambientes o **`npm run`** pode **não repassar** correctamente `--forc
 
 ---
 
+## Modo task complexa
+
+Quando o **executor** bloqueia citando **snippet insuficiente** ou trecho truncado que não cobre o cabeçalho / zona a alterar num ficheiro grande, o limite por defeito do contexto do executor pode ser baixo para esse caso. Pode **aumentar temporariamente** o teto de caracteres por ficheiro permitido com **`EXECUTOR_CONTEXT_SNIPPET_SIZE`** (ver **`.env.example`**).
+
+**PowerShell** (exemplo validado com componente ~19k chars):
+
+```powershell
+$env:EXECUTOR_CONTEXT_SNIPPET_SIZE='24000'
+npm run run tasks/task-1.md ../agenda-diaria
+```
+
+Depois da corrida, pode repor o ambiente:
+
+```powershell
+Remove-Item Env:EXECUTOR_CONTEXT_SNIPPET_SIZE
+```
+
+Preferível usar valores altos **só na run necessária**: o prompt do executor (e custo/tokens) cresce com o snippet — comparar **`prompt-sizes.json`** entre corridas (ver **`docs/observability.md`**).
+
+---
+
 ## Estado atual do sistema (v2.0.0)
 
 - Pipeline até **knowledge** com **executor por PATCH** e **run-context** operacional.
@@ -120,6 +141,30 @@ Em alguns ambientes o **`npm run`** pode **não repassar** correctamente `--forc
 
 ---
 
+## Hybrid runtime — Fase 4.9 (concluída / estável)
+
+**Estado:** Fase **4.9** oficialmente **encerrada** para uso **controlado**: capacidades **opt-in** por variáveis de ambiente, **fallback textual** garantido quando o caminho estrutural não aplica, relatórios de **governança** e **replay shadow** apenas onde documentado (replay **sem apply real** no MVP).
+
+**Capacidades entregues (resumo):** AST/planning/transform em modo shadow; execução híbrida structural-first (4.9.4); apply estrutural controlado opcional (4.9.5); governança estrutural em JSON (4.9.6); fundação replay / stale / fingerprints (4.9.6.1); replay shadow + continuidade (4.9.7); consolidação e validação de artefactos com observabilidade (4.9.7.1); fecho documental e matriz de release readiness (4.9.8).
+
+**Limitações MVP que permanecem:** sem replay apply real ao filesystem; sem propagação semântica global nem transacção multi-ficheiro unificada; sem workflows de aprovação externos neste runtime.
+
+**Documentação principal (Hybrid Runtime):**
+
+| Documento | Conteúdo |
+|-----------|----------|
+| **[`docs/hybrid-runtime-lifecycle.md`](./hybrid-runtime-lifecycle.md)** | Ordem das fases, flags, artefactos, fallback, governança, replay shadow, troubleshooting |
+| **[`docs/hybrid-runtime-release-readiness.md`](./hybrid-runtime-release-readiness.md)** | Encerramento 4.9, rollout, checklist operacional, rollback |
+| **[`docs/validation-runtime-phase410-release-readiness.md`](./validation-runtime-phase410-release-readiness.md)** | Encerramento **4.10**: validation plan, cache, dependency graph, graph-aware metadata, checklist |
+| **[`docs/deterministic-review-phase411-release-readiness.md`](./deterministic-review-phase411-release-readiness.md)** | Encerramento **4.11**: deterministic review, risk/gates, diff/baseline, inspect, checklist CI |
+| **[`docs/observability.md`](./observability.md)** | Artefactos por corrida, `metadata.json`, `prompt-sizes.json`; ligação ao resumo híbrido quando a flag de observabilidade está ligada |
+
+Enquadramento histórico da Fase 4: **[`docs/setup-boss-evolution.md`](./setup-boss-evolution.md)**.
+
+**Próximos passos recomendados (produto):** rollout gradual por ambiente (ver release readiness); depois evolução em [**`docs/setup-boss-roadmap.md`**](./setup-boss-roadmap.md) — optimização de tokens (STEP 4), fallback inteligente (STEP 5), continuação da linha híbrido/determinístico (STEP 6), targeting pós-4.11 (STEP 7 / 4.12+).
+
+---
+
 ## Próximos passos (roadmap)
 
-Ver **`docs/setup-boss-roadmap.md`** (optimização de tokens, fallback local/API, executor híbrido).
+Ver **`docs/setup-boss-roadmap.md`** (optimização de tokens, fallback local/API, evolução do executor híbrido). As fases **4.9** a **4.11** estão documentadas como concluídas nos respectivos release readiness; o roadmap descreve trabalho contínuo (**STEP 4–7**, incl. **4.12+**).

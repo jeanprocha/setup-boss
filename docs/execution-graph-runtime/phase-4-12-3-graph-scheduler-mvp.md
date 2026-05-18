@@ -32,7 +32,7 @@ Debug opcional: `SETUP_BOSS_EXECUTION_GRAPH_DEBUG=1` regista aviso em falha de e
 
 ## Artefacto: `execution-graph-scheduler-report.json`
 
-Gerado no mesmo diretório que as restantes saídas da run (ex.: `<projectRoot>/.IA/outputs/<runId>/`).
+Gerado no mesmo diretório que as restantes saídas da run (ex.: **`<projectRoot>/docs/.IA/outputs/<runId>/`**, legado **`<projectRoot>/.IA/outputs/<runId>/`**).
 
 | Campo | Descrição |
 |-------|-----------|

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 const { runList } = require("./commands/list");
 const { runStatus } = require("./commands/status");
@@ -31,10 +31,13 @@ function printUsage() {
   npm run setup-boss -- plan-doctor [runId | latest | índice] [--json]
   npm run setup-boss -- governance inspect <runId | latest | índice> [--json] [--no-write]
   npm run setup-boss -- inspect <runId | latest | índice>
+  npm run setup-boss -- inspect-run <runId>
   npm run setup-boss -- apply <runId> [--confirm] [--policy-profile=...] [--force-policy-bypass] [--disable-governance]
   npm run setup-boss -- replay <runId> [--from=executor|review|correction]
   npm run setup-boss -- resume <runId> [--policy-profile=FAST|NORMAL|STRICT|ENTERPRISE] [--force-policy-bypass] [--disable-governance]
   npm run setup-boss -- run <task.md> <projeto> [--dry-run] [--force-scan] [--yes|--no-confirm] [--policy-profile=FAST|NORMAL|STRICT|ENTERPRISE] [--force-policy-bypass] [--disable-governance]
+  npm run setup-boss -- intake --project <projeto> --task "texto ou caminho" [--skip-llm] [--json]
+  npm run setup-boss -- clarify --run <runId|caminho-output> [--skip-llm] [--answers <ficheiro>] [--answer id=valor]... [--overwrite] [--json]
   npm run setup-boss -- daemon start [--foreground] | stop | status
   npm run setup-boss -- enqueue <task.md> <projeto> [--dry-run] [--force-scan] [--yes|--no-confirm] [--policy-profile=...] [--force-policy-bypass] [--disable-governance]
   npm run setup-boss -- queue [--json] [--project=<id|caminho>]
@@ -214,6 +217,12 @@ async function main() {
     return;
   }
 
+  if (cmd === "inspect-run") {
+    const { runInspectRun } = require("./commands/inspect-run");
+    runInspectRun(rest, { repoRoot: root });
+    return;
+  }
+
   if (cmd === "inspect") {
     if (!rest.length) {
       console.error("Falta argumento: run id, latest ou índice.");
@@ -372,6 +381,69 @@ async function main() {
       }
     }
 
+    return;
+  }
+
+  if (cmd === "clarify") {
+    const { runClarify } = require("./commands/clarify");
+    await runClarify(rest);
+    return;
+  }
+
+  if (cmd === "intake") {
+    const { executeIntake, parseIntakeCliArgs } = require("../runtime/intake/intake-runtime");
+    const {
+      printIntakeHumanSummary,
+      intakeResultToJson,
+    } = require("../runtime/intake/intake-cli-output");
+    const parsed = parseIntakeCliArgs(rest);
+    const projectArg =
+      parsed.project != null ? String(parsed.project).trim() : "";
+    const taskArg = parsed.task != null ? String(parsed.task).trim() : "";
+    if (!projectArg || !taskArg) {
+      if (parsed.json) {
+        console.log(
+          JSON.stringify(
+            {
+              ok: false,
+              error: {
+                code: "INTAKE_CLI_USAGE",
+                message:
+                  "Uso: setup-boss intake --project <caminho> --task \"texto\"|--task <ficheiro.md> [--skip-llm] [--json]",
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        console.error(
+          "Uso: setup-boss intake --project <caminho> --task \"texto\"|--task <ficheiro.md> [--skip-llm] [--json]",
+        );
+      }
+      process.exitCode = 1;
+      return;
+    }
+    const res = await executeIntake({
+      projectArg,
+      taskArg,
+      cwd: process.cwd(),
+      skipLlm: Boolean(parsed.skipLlm),
+    });
+    if (!res.ok) {
+      if (parsed.json) {
+        console.log(JSON.stringify({ ok: false, error: res.error }, null, 2));
+      } else {
+        console.error(res.error.message || "intake falhou");
+      }
+      process.exitCode = 1;
+      return;
+    }
+    if (parsed.json) {
+      console.log(JSON.stringify(intakeResultToJson(res), null, 2));
+    } else {
+      printIntakeHumanSummary(res);
+    }
     return;
   }
 

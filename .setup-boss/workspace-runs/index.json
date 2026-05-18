@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "workspaceRuns": [
+    {
+      "workspaceRunId": "wsrun_20260518-012445-criar-tela-de-export-pdf-que-vai-ser-possivel-expo",
+      "workspaceId": "ws_4513a43d",
+      "title": "criar tela de export PDF, que vai ser possivel exportar os dados usados na dashboard",
+      "description": null,
+      "status": "draft",
+      "globalSpec": {
+        "schemaVersion": 1,
+        "task": "criar tela de export PDF, que vai ser possivel exportar os dados usados na dashboard",
+        "projectIds": [
+          "proj_3326f20c",
+          "proj_75abd467"
+        ],
+        "source": "mission_control",
+        "priority": "normal",
+        "createdAt": "2026-05-18T04:24:45.601Z"
+      },
+      "globalPlan": null,
+      "miniActivities": [],
+      "childRunIds": [],
+      "git": null,
+      "createdAt": "2026-05-18T04:24:45.908Z",
+      "updatedAt": "2026-05-18T04:24:45.908Z"
+    },
+    {
+      "workspaceRunId": "wsrun_20260518-013516-criar-tela-de-export-pdf-que-vai-ser-possivel-expo",
+      "workspaceId": "ws_4513a43d",
+      "title": "criar tela de export PDF, que vai ser possivel exportar os dados usados na dashboard",
+      "description": null,
+      "status": "draft",
+      "globalSpec": {
+        "schemaVersion": 1,
+        "task": "criar tela de export PDF, que vai ser possivel exportar os dados usados na dashboard",
+        "projectIds": [
+          "proj_3326f20c",
+          "proj_75abd467"
+        ],
+        "source": "mission_control",
+        "priority": "normal",
+        "createdAt": "2026-05-18T04:35:16.217Z"
+      },
+      "globalPlan": null,
+      "miniActivities": [],
+      "childRunIds": [],
+      "git": null,
+      "createdAt": "2026-05-18T04:35:16.497Z",
+      "updatedAt": "2026-05-18T04:35:16.497Z"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "workspaces": [
+    {
+      "workspaceId": "ws_4513a43d",
+      "name": "wiser",
+      "description": null,
+      "projectIds": [
+        "proj_3326f20c",
+        "proj_75abd467"
+      ],
+      "primaryProjectId": null,
+      "createdAt": "2026-05-18T04:06:40.728Z",
+      "updatedAt": "2026-05-18T04:06:40.728Z"
+    }
+  ]
+}

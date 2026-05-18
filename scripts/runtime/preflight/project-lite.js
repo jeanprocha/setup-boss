@@ -17,6 +17,7 @@ const TREE_IGNORE = new Set([
   "vendor",
   "target",
   "__pycache__",
+  // Pasta de conhecimento IA (raiz legada ou docs/.IA): ignorar no lite walk, não ignorar "docs" inteiro.
   ".IA",
 ]);
 

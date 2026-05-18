@@ -26,7 +26,7 @@ scan → architect → run-context.json
 - **executor**: resposta estruturada com **`operation: "patch"`** por alteração; cada patch usa **`search`** (trecho que deve ocorrer **exactamente uma vez** no ficheiro) e **`replace`**; não há modo suportado de reescrever o ficheiro inteiro via o schema atual. Escrita no disco só para paths em **`allowed_files`**, com validação em código (`scripts/executor.js`).
 - **review**: decisão em **`review-output.json`**; prompts tendem a ser menores quando **`run-context.json`** é utilizável.
 - **correction → executor → review**: repete até `approved`, `blocked` ou limites (`MAX_CORRECTIONS`, `MAX_TOTAL_STEPS`) definidos em **`scripts/run.js`**.
-- **knowledge**: só após review **`approved`**; atualiza conhecimento local do projeto e pode acionar enriquecimento `.IA` quando aplicável.
+- **knowledge**: só após review **`approved`**; atualiza conhecimento local do projeto e pode acionar enriquecimento em **`docs/.IA/`** quando aplicável (legado: **`.IA/`** na raiz).
 
 ---
 
@@ -58,10 +58,10 @@ scripts/      scan, architect, executor, review, correction, knowledge, run, …
 Artefactos por corrida no **projeto alvo**:
 
 ```text
-<projeto>/.IA/outputs/<run-id>/
+<projeto>/docs/.IA/outputs/<run-id>/
 ```
 
-No projeto alvo também: **`.setup-boss/`** (scan, knowledge local), **`.IA/`** (memória semântica, problem history, outputs).
+No projeto alvo também: **`.setup-boss/`** (scan, knowledge local), **`docs/.IA/`** (memória semântica, problem history, outputs; legado: **`.IA/`** na raiz).
 
 ---
 
@@ -76,7 +76,8 @@ No projeto alvo também: **`.setup-boss/`** (scan, knowledge local), **`.IA/`** 
 | `npm run review <runId>` | Review |
 | `npm run correction <runId>` | Correction |
 | `npm run knowledge <runId>` | Knowledge (requer review approved) |
-| `npm run ensure-ia <caminho-projeto>` | Baseline `.IA`; `--full` usa IA |
+| `npm run ensure-ia <caminho-projeto>` | Baseline **`docs/.IA`**; `--full` usa IA |
+| `npm run strategy -- --run <runId>` | **MVP Fase 3:** strategy runtime (pós-`ready_for_execution` + `approved`); gera **`strategy/`** e handoff; ver **`docs/mvp-phase3-execution-strategy-runtime.md`** |
 
 Variáveis: ver **`.env.example`** (`OPENAI_API_KEY`, `OPENAI_MODEL`, `*_MODEL` por etapa, preços opcionais por modelo, `MAX_CORRECTIONS`, `MAX_TOTAL_STEPS`, `ENABLE_SCAN_CACHE`).
 
@@ -126,9 +127,10 @@ Preferível usar valores altos **só na run necessária**: o prompt do executor 
 
 ## Estado atual do sistema (v2.0.0)
 
+- **MVP Fases 1–3 (intake → clarify → strategy):** intake (`npm run intake`), clarificação até **`ready_for_execution`** (`npm run clarify`), strategy runtime **`npm run strategy`** que gera complexity, AI strategy, decomposição, ordenação linear, contexto partilhado, readiness e **`execution-ready-handoff.json`** — **sem executar código** do projeto alvo. Documentação: **`docs/mvp-phase1-task-intake-discovery-runtime.md`**, **`docs/mvp-phase2-clarification-runtime.md`**, **`docs/mvp-phase3-execution-strategy-runtime.md`**.
 - Pipeline até **knowledge** com **executor por PATCH** e **run-context** operacional.
 - **Modelos por etapa** via **`core/llm-client.js`** (`getModelForStep`), fallback **`OPENAI_MODEL`**.
-- **Tracking** em `<projeto>/.IA/outputs/<run>/metadata.json`: **`llm_usage`**, **`llm_usage_total`**; etapas como scan, architect, executor, review, correction, knowledge; chamadas **`ensure_ia`** / **`semantic_ia`** quando o fluxo as dispara.
+- **Tracking** em `<projeto>/docs/.IA/outputs/<run>/metadata.json` (legado: `<projeto>/.IA/outputs/<run>/`): **`llm_usage`**, **`llm_usage_total`**; etapas como scan, architect, executor, review, correction, knowledge; chamadas **`ensure_ia`** / **`semantic_ia`** quando o fluxo as dispara.
 - **Custo estimado** por etapa apenas se existirem variáveis de preço por modelo (ver `.env.example`).
 
 ---
@@ -158,6 +160,7 @@ Preferível usar valores altos **só na run necessária**: o prompt do executor 
 | **[`docs/validation-runtime-phase410-release-readiness.md`](./validation-runtime-phase410-release-readiness.md)** | Encerramento **4.10**: validation plan, cache, dependency graph, graph-aware metadata, checklist |
 | **[`docs/deterministic-review-phase411-release-readiness.md`](./deterministic-review-phase411-release-readiness.md)** | Encerramento **4.11**: deterministic review, risk/gates, diff/baseline, inspect, checklist CI |
 | **[`docs/observability.md`](./observability.md)** | Artefactos por corrida, `metadata.json`, `prompt-sizes.json`; ligação ao resumo híbrido quando a flag de observabilidade está ligada |
+| **[`docs/git-workflow-operational-runbook.md`](./git-workflow-operational-runbook.md)** | Fluxo Git local: prepare branch, execute gate, commit, push/PR opcionais, smoke, troubleshooting |
 
 Enquadramento histórico da Fase 4: **[`docs/setup-boss-evolution.md`](./setup-boss-evolution.md)**.
 

@@ -1,0 +1,230 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../styles/mission-shell.css";
+@import "../styles/conversation-stream.css";
+@import "../styles/plan-approval-timeline.css";
+@import "../styles/execution-mini-activity-timeline.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-mono), ui-monospace, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-sb-border: var(--sb-border);
+  --color-sb-card: var(--sb-card);
+  --color-sb-card-foreground: var(--sb-card-foreground);
+  --color-sb-running: var(--sb-running);
+  --color-sb-warning: var(--sb-warning);
+  --color-sb-failed: var(--sb-failed);
+  --color-sb-success: var(--sb-success);
+  --color-sb-blocked: var(--sb-blocked);
+  --color-sb-correcting: var(--sb-correcting);
+  --color-sb-retrying: var(--sb-retrying);
+  --color-sb-recovered: var(--sb-recovered);
+  --font-heading: var(--font-geist-mono), ui-monospace, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-workspace: var(--workspace);
+  --color-shell-header: var(--shell-header);
+  --color-sb-bg-elevated: var(--sb-bg-elevated);
+  --color-sb-bg-canvas: var(--sb-bg-canvas);
+  --color-sb-surface: var(--sb-surface);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Marca (RGB comma-separated para rgb()/rgba()) */
+  --v-theme-primary: 0, 77, 86;
+
+  /* Superfície única da app (modo claro) */
+  --sb-surface: #f1f3f4;
+  --sb-bg-canvas: var(--sb-surface);
+  --sb-bg-elevated: var(--sb-surface);
+
+  /* Setup Boss — semantic runtime tokens (light fallback) */
+  --sb-border: oklch(0.86 0.004 95);
+  --sb-card: var(--sb-surface);
+  --sb-card-foreground: oklch(0.22 0.015 260);
+  --sb-running: oklch(0.55 0.14 250);
+  --sb-warning: oklch(0.75 0.15 85);
+  --sb-failed: oklch(0.55 0.22 25);
+  --sb-success: oklch(0.55 0.16 150);
+  --sb-blocked: oklch(0.5 0.08 290);
+  --sb-correcting: oklch(0.58 0.18 45);
+  --sb-retrying: oklch(0.62 0.14 75);
+  --sb-recovered: oklch(0.52 0.12 200);
+
+  --workspace: var(--sb-surface);
+  --background: var(--sb-surface);
+  --shell-header: rgb(var(--v-theme-primary));
+  --foreground: oklch(0.195 0.022 260);
+  --card: var(--sb-surface);
+  --card-foreground: oklch(0.195 0.022 260);
+  --popover: var(--sb-surface);
+  --popover-foreground: oklch(0.195 0.022 260);
+  --primary: oklch(0.22 0.03 260);
+  --primary-foreground: oklch(0.985 0.003 95);
+  --secondary: color-mix(in srgb, var(--sb-surface) 88%, #202124 12%);
+  --secondary-foreground: oklch(0.24 0.02 260);
+  --muted: color-mix(in srgb, var(--sb-surface) 92%, #202124 8%);
+  --muted-foreground: oklch(0.5 0.018 260);
+  --accent: color-mix(in srgb, var(--sb-surface) 90%, #202124 10%);
+  --accent-foreground: oklch(0.24 0.025 260);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: color-mix(in srgb, var(--sb-surface) 72%, #202124 28%);
+  --input: color-mix(in srgb, var(--sb-surface) 80%, #ffffff 20%);
+  --ring: oklch(0.52 0.06 260);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.875rem;
+  --sidebar: var(--sb-surface);
+  --sidebar-foreground: oklch(0.2 0.014 260);
+  --sidebar-primary: oklch(0.38 0.07 260);
+  --sidebar-primary-foreground: oklch(0.995 0.003 95);
+  --sidebar-accent: color-mix(in srgb, var(--sb-surface) 88%, #202124 12%);
+  --sidebar-accent-foreground: oklch(0.22 0.014 260);
+  --sidebar-border: color-mix(in srgb, var(--sb-surface) 70%, #202124 30%);
+  --sidebar-ring: oklch(0.52 0.05 260);
+}
+
+.dark {
+  --sb-surface: #202124;
+  --sb-bg-canvas: var(--sb-surface);
+  --sb-bg-elevated: var(--sb-surface);
+
+  --sb-border: color-mix(in srgb, var(--sb-surface) 78%, #ffffff 22%);
+  --sb-card: var(--sb-surface);
+  --sb-card-foreground: oklch(0.93 0.012 260);
+  --sb-running: oklch(0.72 0.12 230);
+  --sb-warning: oklch(0.82 0.14 90);
+  --sb-failed: oklch(0.62 0.2 25);
+  --sb-success: oklch(0.65 0.17 150);
+  --sb-blocked: oklch(0.58 0.1 290);
+  --sb-correcting: oklch(0.72 0.16 55);
+  --sb-retrying: oklch(0.78 0.14 85);
+  --sb-recovered: oklch(0.7 0.12 200);
+
+  --workspace: var(--sb-surface);
+  --background: var(--sb-surface);
+  --shell-header: rgb(var(--v-theme-primary));
+  --foreground: oklch(0.93 0.012 260);
+  --card: var(--sb-surface);
+  --card-foreground: oklch(0.93 0.012 260);
+  --popover: var(--sb-surface);
+  --popover-foreground: oklch(0.93 0.012 260);
+  --primary: oklch(0.88 0.018 260);
+  --primary-foreground: oklch(0.2 0.02 260);
+  --secondary: color-mix(in srgb, var(--sb-surface) 88%, #ffffff 12%);
+  --secondary-foreground: oklch(0.93 0.01 260);
+  --muted: color-mix(in srgb, var(--sb-surface) 90%, #ffffff 10%);
+  --muted-foreground: oklch(0.66 0.018 260);
+  --accent: color-mix(in srgb, var(--sb-surface) 86%, #ffffff 14%);
+  --accent-foreground: oklch(0.93 0.012 260);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: color-mix(in srgb, var(--sb-surface) 82%, #ffffff 18%);
+  --input: color-mix(in srgb, var(--sb-surface) 92%, #ffffff 8%);
+  --ring: oklch(0.58 0.07 260);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: var(--sb-surface);
+  --sidebar-foreground: oklch(0.9 0.006 260);
+  --sidebar-primary: oklch(0.6 0.06 260);
+  --sidebar-primary-foreground: oklch(0.98 0.008 260);
+  --sidebar-accent: color-mix(in srgb, var(--sb-surface) 88%, #ffffff 12%);
+  --sidebar-accent-foreground: oklch(0.9 0.006 260);
+  --sidebar-border: color-mix(in srgb, var(--sb-surface) 82%, #ffffff 18%);
+  --sidebar-ring: oklch(0.58 0.05 260);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+
+  button,
+  input,
+  textarea,
+  select,
+  optgroup,
+  option {
+    font-family: inherit;
+  }
+
+  /* Scrollbars nativos: menos “painel técnico”, mais próximo de apps premium */
+  * {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 28%, transparent)
+      color-mix(in oklch, var(--muted) 65%, transparent);
+    scrollbar-width: thin;
+  }
+
+  .dark * {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent)
+      color-mix(in oklch, var(--workspace) 90%, transparent);
+  }
+
+  .runtime-action-highlight {
+    animation: runtime-action-highlight-pulse 1.6s ease-out;
+    box-shadow:
+      0 0 0 2px color-mix(in oklch, var(--sidebar-primary) 45%, transparent),
+      0 0 24px -6px color-mix(in oklch, var(--sidebar-primary) 35%, transparent);
+  }
+
+  @keyframes runtime-action-highlight-pulse {
+    0% {
+      box-shadow:
+        0 0 0 3px color-mix(in oklch, var(--sidebar-primary) 55%, transparent),
+        0 0 32px -4px color-mix(in oklch, var(--sidebar-primary) 40%, transparent);
+    }
+    100% {
+      box-shadow:
+        0 0 0 1px color-mix(in oklch, var(--sidebar-primary) 20%, transparent),
+        0 0 0 0 transparent;
+    }
+  }
+}

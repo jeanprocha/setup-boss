@@ -1,0 +1,42 @@
+{
+  "at": "2026-05-18T05:20:41.119Z",
+  "passed": 7,
+  "failed": 0,
+  "results": [
+    {
+      "name": "plano base (v1) canonicalizado no snapshot",
+      "ok": true,
+      "ms": 1
+    },
+    {
+      "name": "POST comentário gera updatedPlan canonicalizado",
+      "ok": true,
+      "ms": 45
+    },
+    {
+      "name": "GET plan-comments consistente com POST",
+      "ok": true,
+      "ms": 12
+    },
+    {
+      "name": "disco updated-plan.json canonicalizado",
+      "ok": true,
+      "ms": 8
+    },
+    {
+      "name": "reopen/idempotência — segundo GET mantém plano correto",
+      "ok": true,
+      "ms": 13
+    },
+    {
+      "name": "sessionStorage: remoto vence local stale",
+      "ok": true,
+      "ms": 10
+    },
+    {
+      "name": "repair automático: disco stale → GET repara",
+      "ok": true,
+      "ms": 61
+    }
+  ]
+}

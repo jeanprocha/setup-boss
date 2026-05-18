@@ -64,7 +64,7 @@ function measureChatInput(input) {
 }
 
 /**
- * Acrescenta entrada em `.IA/outputs/<run-id>/prompt-sizes.json` (merge por etapa).
+ * Acrescenta entrada em `docs/.IA/outputs/<run-id>/prompt-sizes.json` (legado: `.IA/outputs/...`; merge por etapa).
  */
 function writePromptSizeRecord(outputDir, step, record) {
   if (outputDir == null || outputDir === "") return;

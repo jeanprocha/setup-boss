@@ -78,3 +78,26 @@ test("readRuntimeEventsFiltered filtra por projectId", () => {
     fs.rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test("readRuntimeEventsFiltered filtra por runKey (jobId ou runId)", () => {
+  const prev = process.env.SETUP_BOSS_CLI_ROOT;
+  const repo = mkRepoTmp();
+  try {
+    process.env.SETUP_BOSS_CLI_ROOT = repo;
+    const { emitRuntimeEvent, readRuntimeEventsFiltered } = require("./runtime-events");
+    emitRuntimeEvent({ type: "job_started", jobId: "job_x", runId: "run_y", data: {} });
+    emitRuntimeEvent({ type: "job_started", jobId: "other", data: {} });
+
+    const byJob = readRuntimeEventsFiltered({ runKey: "job_x", limit: 50 });
+    assert.strictEqual(byJob.length, 1);
+    assert.strictEqual(byJob[0].jobId, "job_x");
+
+    const byRun = readRuntimeEventsFiltered({ runKey: "run_y", limit: 50 });
+    assert.strictEqual(byRun.length, 1);
+    assert.strictEqual(byRun[0].runId, "run_y");
+  } finally {
+    if (prev === undefined) delete process.env.SETUP_BOSS_CLI_ROOT;
+    else process.env.SETUP_BOSS_CLI_ROOT = prev;
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});

@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+const { resolveProjectIaDir } = require("../shared/ia-path-resolver");
+
 /**
  * Ficheiros .IA considerados na impressão digital (alinhado a ensure-ia.js).
  */
@@ -50,7 +52,7 @@ function digestMarkdownDir(absDir) {
 }
 
 function digestProjectIA(projectRoot) {
-  const iaDir = path.join(projectRoot, ".IA");
+  const { iaDir } = resolveProjectIaDir(path.resolve(projectRoot));
   const parts = IA_MARKERS.map((f) => {
     const sig = statSig(path.join(iaDir, f));
     return `${f}:${sig ?? "-"}`;

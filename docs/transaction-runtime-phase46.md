@@ -16,7 +16,7 @@ Modelo **transacional** em torno da pipeline já existente: checkpoints formais 
 | `shadow` | Contract, checkpoints, snapshots, manifests, telemetry, continuidade/recovery/planeamento persistidos nos artefactos da run. |
 | `active` | Igual ao `shadow`; `buildRecoveryAnalysis` inclui mais detalhes em sumários posteriores (sem mudar comportamento executor). |
 
-## Artefactos (por `.IA/outputs/<runId>/`)
+## Artefactos (por `docs/.IA/outputs/<runId>/`; legado: `.IA/outputs/<runId>/`)
 
 - `transaction-runtime.json` — contract canónico (`schema_version`, `transaction_id`, `plan_id`, `run_id`, `summary`, `stages`, `checkpoints`, `snapshots`, `recovery`, `rollback_plan`, `metadata`).
 - `transaction-runtime-manifest.json` — índice de caminhos.

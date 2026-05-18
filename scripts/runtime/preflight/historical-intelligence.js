@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { discoverRuns } = require("../../cli/lib/runs-discovery");
 const { readJsonSafe } = require("../../cli/lib/json-io");
+const { resolveProjectIaDir } = require("../../shared/ia-path-resolver");
 
 function normalizeRoot(p) {
   try {
@@ -16,7 +17,11 @@ function normalizeRoot(p) {
 }
 
 function readProblemHistoryTail(projectRootAbs, maxLines = 60) {
-  const fp = path.join(projectRootAbs, ".IA", "09-problem-history.jsonl");
+  const root = normalizeRoot(projectRootAbs);
+  if (!root) return { entries: 0, recent_errors: 0 };
+
+  const { iaDir } = resolveProjectIaDir(root);
+  const fp = path.join(iaDir, "09-problem-history.jsonl");
   if (!fs.existsSync(fp)) return { entries: 0, recent_errors: 0 };
 
   let raw = "";

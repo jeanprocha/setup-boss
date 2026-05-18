@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "003",
+  "title": "Integrar chat na tela e validar visualmente",
+  "goal": "Ligar ChatPanel à página de integrações e validar dark mode.",
+  "scope": {
+    "files": ["frontend/app/integracoes/page.tsx"],
+    "domains": ["frontend"]
+  },
+  "dependencies": ["002"],
+  "complexity": { "estimated_score": 6, "risk": 5 },
+  "acceptance_criteria": ["Integração visível na tela", "Dark mode consistente"],
+  "status": "planned"
+}

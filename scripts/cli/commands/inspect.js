@@ -9,6 +9,13 @@ const { buildTemporalInspectReport } = require("../../runtime/replay/temporal-st
 const { summarizeRecoveryFromArtifacts } = require("../../runtime/recovery/recovery-artifacts");
 
 const PREFERRED_ARTIFACTS = [
+  "intake-manifest.json",
+  "intake-classification.json",
+  "intake-context-summary.json",
+  "intake-discovery-analysis.json",
+  "task-discovery.md",
+  "task-plan-initial.md",
+  "intake-llm-error.json",
   "preflight-analysis.json",
   "policy-report.json",
   "governance-decisions.json",
@@ -121,13 +128,45 @@ function runInspect(argv, { repoRoot = null } = {}) {
   const outDir = entry.output_dir;
   const sum = summarizeRun(outDir, entry);
 
+  const useColor = supportsColor();
+  const t = theme(useColor);
+
+  if (sum.is_intake) {
+    const title = t.bold(`Run ${sum.run_id}`);
+    console.log(`${title}`);
+    console.log(t.dim("—".repeat(64)));
+    printKv(t, "Modo", "intake (Fase 1)");
+    printKv(t, "Task", sum.task_title);
+    printKv(
+      t,
+      "Project",
+      sum.project_root || "(desconhecido / legado)",
+    );
+    printKv(t, "Output dir", outDir);
+    printKv(t, "Status", sum.status);
+    printKv(t, "Classification", sum.intake_classification || "—");
+    printKv(t, "Confidence", sum.intake_confidence || "—");
+    printKv(t, "Phase1", sum.phase1_status || "—");
+    if (sum.intake_manifest) {
+      printKv(t, "Manifest", sum.intake_manifest);
+    }
+    console.log("");
+    console.log(t.bold("Artefactos"));
+    const inv = listArtifactNames(outDir);
+    const all = [...inv.preferred, ...inv.rest];
+    for (const n of all.slice(0, 48)) {
+      console.log(`  - ${n}`);
+    }
+    if (all.length > 48) {
+      console.log(t.dim(`  … +${all.length - 48} mais`));
+    }
+    return;
+  }
+
   const changes = readJsonSafe(
     path.join(outDir, "executor-changes.json"),
     2_000_000,
   );
-
-  const useColor = supportsColor();
-  const t = theme(useColor);
 
   const title = t.bold(`Run ${sum.run_id}`);
   console.log(`${title}`);

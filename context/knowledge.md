@@ -60,7 +60,7 @@ Registrar em **knowledge** (e **`.setup-boss/knowledge-base.md`** no projeto):
 - decisões reutilizáveis
 - padrões estáveis
 
-Não guardar como “knowledge” o passo-a-passo bruto de uma única corrida — isso fica em **`.IA/outputs/<run-id>/`**.
+Não guardar como “knowledge” o passo-a-passo bruto de uma única corrida — isso fica em **`docs/.IA/outputs/<run-id>/`** (legado: **`.IA/outputs/<run-id>/`**).
 
 ---
 

@@ -1,12 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 const OpenAI = require("openai");
 const { getModelForStep } = require("../core/llm-client");
 const { recordLLMUsage } = require("../core/llm-usage");
-
-const IA_DIR_NAME = ".IA";
+const { resolveProjectIaDir } = require("./shared/ia-path-resolver");
 
 const IA_FILES = [
   "00-project-profile.md",
@@ -426,11 +425,11 @@ Não usar como log operacional.
 
 ### Contexto
 
-O projeto passou a usar a pasta \`.IA\` como base local de conhecimento para execução assistida.
+O projeto usa \`docs/.IA/\` como base local de conhecimento para execução assistida (padrão corporativo). A pasta \`.IA/\` na raiz permanece apenas como legado compatível quando ainda não existe \`docs/.IA/\`.
 
 ### Decisão
 
-Manter documentação persistente do projeto dentro de \`.IA\`.
+Manter documentação persistente do projeto dentro de \`docs/.IA/\` (ou \`.IA/\` na raiz só enquanto legado).
 
 ### Motivo
 
@@ -496,7 +495,7 @@ Formato esperado:
 - Não alterar arquitetura sem aprovação explícita.
 - Não alterar arquivos fora do escopo definido pelo Architect.
 - Não inventar contexto.
-- Consultar esta pasta antes de planejar alterações.
+- Consultar a pasta semântica do projeto (\`docs/.IA/\`; legado \`.IA/\` na raiz) antes de planejar alterações.
 - Atualizar \`08-activity-history.md\` ao fim de atividades executadas.
 - Registrar decisões permanentes em \`07-decisions.md\` quando necessário.
 - Registrar problemas recorrentes em \`09-known-issues.md\` quando necessário.
@@ -508,7 +507,7 @@ Formato esperado:
 
 ## Fonte local de verdade
 
-A pasta \`.IA\` representa a base semântica local do projeto.
+A pasta \`docs/.IA/\` representa a base semântica local do projeto (padrão); \`.IA/\` na raiz é equivalente legado.
 
 ## Project Scan Inicial
 
@@ -590,8 +589,8 @@ Quando algo não estiver confirmado, escreva "A confirmar".
 }
 
 /**
- * Ensures `.IA/` exists with deterministic stub files only.
- * Never calls the LLM (no enrichment at pipeline start).
+ * Garante a pasta semântica ativa (`docs/.IA/` preferencial; `.IA/` na raiz se legado) com stubs determinísticos.
+ * Nunca chama LLM (sem enriquecimento no arranque do pipeline).
  */
 async function ensureIAMinimal(projectRoot, options = {}) {
   if (!projectRoot) {
@@ -604,7 +603,7 @@ async function ensureIAMinimal(projectRoot, options = {}) {
     throw new Error(`Projeto alvo não encontrado: ${resolvedProjectRoot}`);
   }
 
-  const iaDir = path.join(resolvedProjectRoot, IA_DIR_NAME);
+  const { iaDir } = resolveProjectIaDir(resolvedProjectRoot);
   const existedBefore = fs.existsSync(iaDir);
 
   ensureDir(iaDir);
@@ -639,12 +638,12 @@ function writeJsonStable(filePath, data) {
 }
 
 /**
- * Avalia apenas o estado atual de `.IA` no disco — não escreve nada nem chama IA.
+ * Avalia apenas o estado atual da pasta semântica (`docs/.IA` ou `.IA` legado) no disco — não escreve nada nem chama IA.
  * @returns {{ status: string, checked_at: string, ia_dir: string, summary: string, weak_files: Array<{file: string, reason: string}>, recommendations: string[] }}
  */
 function analyzeIAQuality(projectRoot) {
   const resolved = path.resolve(projectRoot);
-  const iaDirAbs = path.join(resolved, IA_DIR_NAME);
+  const { iaDir: iaDirAbs } = resolveProjectIaDir(resolved);
   const checked_at = new Date().toISOString();
   const weak_files = [];
   const recommendations = [];
@@ -655,13 +654,14 @@ function analyzeIAQuality(projectRoot) {
       status: "missing",
       checked_at,
       ia_dir,
-      summary: "Documentação incompleta: pasta .IA ausente.",
+      summary:
+        "Documentação incompleta: pasta semântica ausente (esperado `docs/.IA/`; legado `.IA/` na raiz).",
       weak_files: IA_FILES.map((file) => ({
         file,
-        reason: "Pasta .IA não existe neste projeto.",
+        reason: "Pasta semântica (docs/.IA ou .IA legado) não existe neste projeto.",
       })),
       recommendations: [
-        "Rodar o Setup Boss para criar `.IA/` e arquivos base (somente placeholders, sem enriquecimento por IA até aprovação).",
+        "Rodar o Setup Boss para criar `docs/.IA/` e ficheiros base (somente placeholders, sem enriquecimento por IA até aprovação). Se existir só `.IA/` na raiz, isso continua válido como legado.",
       ],
     };
   }
@@ -678,7 +678,8 @@ function analyzeIAQuality(projectRoot) {
     if (!fs.existsSync(fp)) {
       weak_files.push({
         file: fileName,
-        reason: "Arquivo ausente na pasta .IA.",
+        reason:
+          "Arquivo ausente na pasta semântica (docs/.IA ou .IA legado).",
       });
       recommendations.push(`Garantir criação de \`${fileName}\` (baseline automático).`);
       continue;
@@ -729,10 +730,11 @@ function analyzeIAQuality(projectRoot) {
       status: "ok",
       checked_at,
       ia_dir,
-      summary: "Documentação .IA presente e dentro do esperado para execução.",
+      summary:
+        "Documentação semântica (docs/.IA; legado .IA) presente e dentro do esperado para execução.",
       weak_files: [],
       recommendations: [
-        "Após próximas tarefas aprovadas, o enriquecimento pós-review manterá a pasta alinhada ao código.",
+        "Após próximas tarefas aprovadas, o enriquecimento pós-review manterá `docs/.IA/` (ou `.IA/` legado) alinhado ao código.",
       ],
     };
   }
@@ -742,7 +744,7 @@ function analyzeIAQuality(projectRoot) {
   );
 
   const summary = hasStructuralGap
-    ? "Documentação incompleta (estrutura .IA incompleta)."
+    ? "Documentação incompleta (estrutura semântica incompleta em docs/.IA ou .IA legado)."
     : "Documentação incompleta (placeholders ou conteúdo fraco detectados).";
 
   return {
@@ -756,7 +758,7 @@ function analyzeIAQuality(projectRoot) {
 }
 
 /**
- * Grava apenas `<projeto>/.IA/outputs/<run-id>/ia-diagnostics.json` — não altera `.IA` além do permitido.
+ * Grava apenas `<projeto>/docs/.IA/outputs/<run-id>/ia-diagnostics.json` (ou `.IA/outputs/...` legado) — não altera a pasta semântica além do permitido.
  */
 function writeIADiagnostics(projectRoot, outputDir) {
   if (!outputDir) {
@@ -775,8 +777,8 @@ function writeIADiagnostics(projectRoot, outputDir) {
 }
 
 /**
- * Baseline .IA: só cria o que falta (`writeIfMissing`). Sem IA.
- * Com `mode: "diagnostic"` e `outputDir`, grava `ia-diagnostics.json` (sem alterar .IA além da criação inicial).
+ * Baseline da pasta semântica (`docs/.IA` padrão): só cria o que falta (`writeIfMissing`). Sem IA.
+ * Com `mode: "diagnostic"` e `outputDir`, grava `ia-diagnostics.json` (sem alterar conteúdos além da criação inicial permitida).
  */
 async function ensureIA(projectRoot, options = {}) {
   const mode = options.mode || "minimal";
@@ -1483,7 +1485,7 @@ function applyDeterministicFactBlocks(iaDir, projectRoot, outputDirResolved) {
 }
 
 function readIAFileBaseline(projectRoot) {
-  const iaDir = path.join(path.resolve(projectRoot), IA_DIR_NAME);
+  const { iaDir } = resolveProjectIaDir(path.resolve(projectRoot));
   const parts = [];
 
   for (const fileName of IA_FILES) {
@@ -1596,7 +1598,7 @@ ${fileTree}
 
 ${importantFiles}
 
-## BASELINE DA PASTA .IA AGORA — inclui já blocos FACTS automáticos
+## BASELINE DA PASTA SEMÂNTICA (docs/.IA; legado .IA) AGORA — inclui já blocos FACTS automáticos
 
 ${baseline}
 
@@ -1655,7 +1657,7 @@ JSON válido segundo o schema solicitado apenas com esses paths.
 }
 
 /**
- * Apenas se `reviewOutput.status === "approved"`. Escreve só dentro de `.IA` (exceto `08`, mantido só por append antes desta chamada).
+ * Apenas se `reviewOutput.status === "approved"`. Escreve só dentro da pasta semântica ativa (`docs/.IA` ou `.IA` legado; exceto `08`, mantido só por append antes desta chamada).
  */
 async function enrichIAAfterApprovedRun({
   projectRoot,
@@ -1676,7 +1678,7 @@ async function enrichIAAfterApprovedRun({
   const resolvedRoot = path.resolve(projectRoot);
   const resolvedOut = path.resolve(outputDir);
 
-  const iaDir = path.join(resolvedRoot, IA_DIR_NAME);
+  const { iaDir } = resolveProjectIaDir(resolvedRoot);
 
   assertPathInsideDir(iaDir, resolvedRoot, "enrichIAAfterApprovedRun");
 
@@ -1811,7 +1813,7 @@ ${changesText || "(vazio)"}
   }
 
   console.log(
-    "✅ .IA atualizada (motor incremental): deterministic=",
+    "✅ docs/.IA (ou .IA legado) atualizado — motor incremental: deterministic=",
     deterministicFiles.join(", ") || "(sem alteração visível)",
     "— semantic=",
     semanticWritten.join(", ") || "(omitido)",
@@ -1829,7 +1831,7 @@ ${changesText || "(vazio)"}
 
 /**
  * Geração completa via IA (uso manual: `npm run ensure-ia <projeto> -- --full`).
- * Sobrescreve arquivos .IA existentes com o resultado do modelo.
+ * Sobrescreve ficheiros na pasta semântica ativa (`docs/.IA` preferencial) com o resultado do modelo.
  */
 async function bootstrapIAWithAI(projectRoot, projectScan) {
   const resolvedProjectRoot = path.resolve(projectRoot);
@@ -1838,7 +1840,7 @@ async function bootstrapIAWithAI(projectRoot, projectScan) {
     throw new Error(`Projeto alvo não encontrado: ${resolvedProjectRoot}`);
   }
 
-  const iaDir = path.join(resolvedProjectRoot, IA_DIR_NAME);
+  const { iaDir } = resolveProjectIaDir(resolvedProjectRoot);
   ensureDir(iaDir);
 
   const generatedByAI = await generateDocumentsWithAI(
@@ -1877,7 +1879,8 @@ async function bootstrapIAWithAI(projectRoot, projectScan) {
 }
 
 function collectIAContext(projectRoot) {
-  const iaDir = path.join(path.resolve(projectRoot), IA_DIR_NAME);
+  const root = path.resolve(projectRoot);
+  const { iaDir } = resolveProjectIaDir(root);
 
   if (!fs.existsSync(iaDir)) return "";
 
@@ -1901,7 +1904,6 @@ function collectIAContext(projectRoot) {
 }
 
 module.exports = {
-  IA_DIR_NAME,
   IA_FILES,
   ensureIAMinimal,
   ensureIA,
@@ -1918,10 +1920,10 @@ if (require.main === module) {
   if (!projectArg || projectArg.startsWith("-")) {
     console.log("Uso: npm run ensure-ia ../meu-projeto [-- --full]");
     console.log(
-      "  default: apenas .IA mínima (determinística, sem enriquecer com IA).",
+      "  default: apenas baseline mínima em docs/.IA (determinística; legado .IA na raiz se aplicável).",
     );
     console.log(
-      "  --full: gera/sobrescreve .IA inteira via IA (precisa OPENAI_API_KEY e project-scan em .setup-boss).",
+      "  --full: gera/sobrescreve toda a pasta semântica via IA (precisa OPENAI_API_KEY e project-scan em .setup-boss).",
     );
     process.exit(1);
   }
@@ -1938,7 +1940,9 @@ if (require.main === module) {
 
   runner
     .then((result) => {
-      console.log(`✅ .IA ${wantsFullAi ? "(modo IA completo)" : "(modo mínimo)"}`);
+      console.log(
+        `✅ Pasta semântica (${wantsFullAi ? "modo IA completo" : "baseline mínima"}) — padrão docs/.IA; .IA na raiz é legado.`,
+      );
       console.log(result.iaDir);
 
       const key = wantsFullAi ? "written" : "created";
@@ -1954,7 +1958,7 @@ if (require.main === module) {
       }
     })
     .catch((error) => {
-      console.error("❌ Erro ao garantir .IA:");
+      console.error("❌ Erro ao garantir docs/.IA (ou .IA legado na raiz):");
       console.error(error.message || error);
       process.exit(1);
     });

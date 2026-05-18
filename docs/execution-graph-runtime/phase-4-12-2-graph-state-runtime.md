@@ -4,7 +4,7 @@
 
 - **Persistência** do estado por nó do grafo canónico (sobre a 4.12.1).
 - **Máquina de transição determinística** (validação explícita de pares `from → to`).
-- Artefacto derivado **`execution-graph-runtime.json`** em **`<projectRoot>/.IA/outputs/<runId>/`**.
+- Artefacto derivado **`execution-graph-runtime.json`** em **`<projectRoot>/docs/.IA/outputs/<runId>/`** (legado: **`<projectRoot>/.IA/outputs/<runId>/`**).
 - Flag **`SETUP_BOSS_EXECUTION_GRAPH_RUNTIME=off`** (default) **| `shadow`**.
 - Integração **apenas** na camada shadow: `tryWriteShadowExecutionGraphArtifacts` em `scripts/runtime/graph/shadow-hook.js` (chamada a partir de `scripts/runtime/run-runtime.js`). **`orchestration.js`** não é alterado.
 

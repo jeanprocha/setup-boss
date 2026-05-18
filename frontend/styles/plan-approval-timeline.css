@@ -1,0 +1,210 @@
+/* Timeline cumulativa de aprovação do plano */
+
+@layer components {
+  .plan-approval-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .plan-approval-timeline__thread {
+    display: contents;
+  }
+
+  .plan-approval-timeline__item {
+    position: relative;
+    padding-left: 1.125rem;
+    padding-bottom: 1.125rem;
+  }
+
+  .plan-approval-timeline__item::before {
+    content: "";
+    position: absolute;
+    left: 0.1875rem;
+    top: 0.35rem;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklch, var(--border) 50%, transparent);
+  }
+
+  .plan-approval-timeline__item:last-child::before {
+    bottom: auto;
+    height: 0.5rem;
+  }
+
+  .plan-approval-timeline__item::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.22rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--foreground) 18%, var(--background));
+    border: 1px solid color-mix(in oklch, var(--border) 65%, transparent);
+  }
+
+  .plan-approval-timeline__item--plan::after {
+    width: 7px;
+    height: 7px;
+    background: color-mix(in oklch, var(--sidebar-primary) 30%, var(--background));
+    border-color: color-mix(in oklch, var(--sidebar-primary) 35%, transparent);
+  }
+
+  .plan-approval-timeline__item--plan-active::after {
+    background: color-mix(in oklch, var(--sidebar-primary) 55%, var(--background));
+    border-color: color-mix(in oklch, var(--sidebar-primary) 50%, transparent);
+  }
+
+  .plan-approval-timeline__item--plan-historical::after {
+    opacity: 0.55;
+  }
+
+  /* Plano: actual vs histórico */
+  .plan-document--active {
+    border-color: color-mix(in oklch, var(--sidebar-primary) 22%, var(--border));
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 18px -4px color-mix(in oklch, var(--sidebar-primary) 12%, transparent);
+  }
+
+  .plan-document--historical {
+    border-style: dashed;
+    border-color: color-mix(in oklch, var(--border) 55%, transparent);
+    box-shadow: none;
+    background: color-mix(in oklch, var(--muted) 12%, transparent);
+  }
+
+  .plan-document--compact section h3 {
+    font-size: 12px;
+  }
+
+  .plan-document__active-badge::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 0.4rem;
+    border-radius: 9999px;
+    vertical-align: 0.1em;
+    background: color-mix(in oklch, var(--sidebar-primary) 70%, transparent);
+  }
+
+  /* Blocos da conversa */
+  .plan-approval-timeline-block {
+    padding-top: 0.125rem;
+  }
+
+  .plan-approval-timeline-block__header {
+    margin-bottom: 0.35rem;
+  }
+
+  .plan-approval-timeline-block__title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: color-mix(in oklch, var(--foreground) 50%, transparent);
+  }
+
+  .plan-approval-timeline-block__hint {
+    margin-top: 0.2rem;
+    font-size: 11px;
+    line-height: 1.45;
+    color: color-mix(in oklch, var(--muted-foreground) 95%, transparent);
+  }
+
+  .plan-approval-timeline-block__summary {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: color-mix(in oklch, var(--foreground) 62%, transparent);
+    font-style: italic;
+  }
+
+  .plan-approval-timeline-block--comment .plan-approval-timeline-block__quote {
+    margin: 0;
+    padding: 0.5rem 0.625rem;
+    border-left: 2px solid color-mix(in oklch, var(--border) 80%, transparent);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .plan-approval-timeline-block--comment .plan-approval-timeline-block__quote p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: color-mix(in oklch, var(--foreground) 88%, transparent);
+  }
+
+  .plan-approval-timeline-block--assistant .plan-approval-timeline-block__assistant-text {
+    margin: 0;
+    padding: 0.5rem 0;
+    font-size: 13px;
+    line-height: 1.65;
+    color: color-mix(in oklch, var(--foreground) 85%, transparent);
+  }
+
+  .plan-approval-timeline-block__answers-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .plan-approval-timeline-block__answers-list li {
+    font-size: 12px;
+    line-height: 1.5;
+    color: color-mix(in oklch, var(--foreground) 82%, transparent);
+  }
+
+  .plan-approval-timeline-block__answers-label {
+    color: color-mix(in oklch, var(--foreground) 48%, transparent);
+  }
+
+  .plan-approval-timeline-block__answers-label::after {
+    content: " ";
+  }
+
+  .plan-approval-timeline__status {
+    padding: 0.125rem 0;
+  }
+
+  .plan-approval-comment-input {
+    margin-top: 0.75rem;
+  }
+
+  .operational-mini-task {
+    padding-left: 0;
+  }
+
+  .operational-mini-task__meta {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .operational-impact--muted {
+    font-style: italic;
+    color: color-mix(in oklch, var(--foreground) 45%, transparent);
+  }
+
+  .operational-impact dt {
+    margin: 0;
+  }
+
+  .operational-impact dd {
+    margin: 0;
+  }
+
+  .operational-strategy-summary p {
+    margin: 0;
+  }
+
+  .plan-document--compact .operational-mini-task {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}

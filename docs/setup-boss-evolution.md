@@ -6,6 +6,46 @@ Registar a evolução real do sistema por fase, **sem descrever comportamento qu
 
 ---
 
+## MVP Fase 1 — Task intake & discovery runtime (concluída e validada)
+
+Marco incremental **à parte** da linha temporal antiga «Fase 1 — MVP (histórico)» abaixo: corresponde ao **intake** (task → discovery → classificação → manifesto) **sem** architect/executor/review.
+
+- **Runtime:** `scripts/runtime/intake/*`, `executeIntake`, `intake-manifest.json`, `validateIntakeArtifacts`.
+- **CLI:** `npm run intake`, `--skip-llm`, `--json`; inspeção via `setup-boss inspect <runId>` quando indexado.
+- **Smoke:** `npm run smoke:mvp-phase1-intake` (`scripts/smoke/mvp-phase1-intake-smoke.js`).
+- **Documentação:** `docs/mvp-phase1-task-intake-discovery-runtime.md`.
+
+**Prontidão Fase 2 (MVP seguinte):** intake estável para evoluir handoff, clarificação ou orquestração posterior **sem** obrigar mudanças no DAG nem no web runtime.
+
+---
+
+## MVP Fase 2 — Clarification runtime (concluída e validada)
+
+Marco incremental **pós-intake**: clarificação sobre a mesma pasta de output (`run_type: intake`), até **`phase2.status = ready_for_execution`** (ou **`approval_rejected`**), **sem** architect/executor/review integrados nesta fase.
+
+- **Runtime:** `scripts/runtime/clarification/*`, `executeClarification`, `clarification-session.json`, `validateClarificationArtifacts`.
+- **CLI:** `npm run clarify`, `--skip-llm`, `--json`, `--answers`, `--answer`, `--refine`, `--approve` / `--reject`; inspeção via `setup-boss inspect <runId>` quando indexado.
+- **Smoke:** `npm run smoke:mvp-phase2-clarification` (`scripts/smoke/mvp-phase2-clarification-smoke.js`).
+- **Documentação:** `docs/mvp-phase2-clarification-runtime.md`.
+
+**Prontidão MVP Fase 3:** `ready_for_execution` + `approved` permitem correr o **strategy runtime** (preparação; ver secção seguinte). Orquestração **architect / executor** sobre o mesmo output continua fora do âmbito deste MVP.
+
+---
+
+## MVP Fase 3 — Strategy runtime (concluída e validada)
+
+Marco incremental **pós-clarificação**: sobre a mesma pasta de output (`run_type: intake`), com **`phase2.status = ready_for_execution`** e **`approval-state.json`** aprovado, gera **`strategy/*`** até **`execution-ready-handoff.json`** (fase **3.8** no manifest). **Não** executa código alvo, **não** integra executor/review da linha 4.x neste marco.
+
+- **Runtime:** `scripts/runtime/strategy-runtime/*`, `runStrategyRuntimeBase`, `validateStrategyArtifacts`, `buildExecutionReadyHandoff`.
+- **CLI:** `npm run strategy -- --run <runId|caminho-output> [--force] [--json]`; resolução de pasta via `core/run-resolver`.
+- **Testes:** `node --test scripts/runtime/strategy-runtime/run-strategy-runtime.test.js scripts/runtime/strategy-runtime/validate-strategy-artifacts.test.js`; teste de clarificação com approve (inclui validação de strategy quando `ready_for_execution`).
+- **Smoke:** `npm run smoke:mvp-phase2-clarification` (pipeline clarify + validação de artefactos com strategy válido).
+- **Documentação:** `docs/mvp-phase3-execution-strategy-runtime.md` (inclui troubleshooting e limitações MVP).
+
+**Prontidão Fase 4 (produto):** consumir **`strategy/execution-ready-handoff.json`** como entrada preferencial para um executor/orquestração real quando existir; fora do escopo do strategy runtime MVP.
+
+---
+
 ## Fase 1 — MVP (histórico)
 
 - **Architect** e plano textual
@@ -58,7 +98,7 @@ scan → architect → run-context.json
 ```
 
 - **Review** com uso preferencial de **`run-context.json`** quando válido, reduzindo dependência de colar task/scan/architect completos
-- Memória **`.IA`** e knowledge no projeto alvo
+- Memória semântica em **`docs/.IA/`** (padrão corporativo) e knowledge no projeto alvo; **`.IA/`** na raiz apenas como legado
 - **Modelos por etapa** (`core/llm-client.js`)
 - **Métricas**: **`core/llm-usage.js`**; **`metadata.json`** com **`llm_usage`** e **`llm_usage_total`**; inclui etapas auxiliares (**`ensure_ia`**, **`semantic_ia`**) quando disparadas no fluxo
 
@@ -165,6 +205,12 @@ Referências cruzadas: **`docs/hybrid-runtime-lifecycle.md`**, **`docs/hybrid-ru
 ## Estado atual
 
 ```text
+MVP Fase 1 (task intake & discovery runtime) concluída e validada por smoke:
+npm run smoke:mvp-phase1-intake; docs/mvp-phase1-task-intake-discovery-runtime.md
+
+MVP Fase 2 (clarification runtime pós-intake) concluída e validada por smoke:
+npm run smoke:mvp-phase2-clarification; docs/mvp-phase2-clarification-runtime.md
+
 Fase 3 concluída nas funcionalidades principais (v2.0.0):
 run-context, PATCH, métricas LLM (llm_usage), redução de contexto entre etapas.
 

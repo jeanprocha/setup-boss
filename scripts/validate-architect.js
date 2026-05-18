@@ -198,7 +198,11 @@ function collectArchitectConcreteFileViolations(filesSection) {
       continue;
     }
 
-    if (posixPath === ".IA/outputs/" || posixPath === ".setup-boss/runs/") {
+    if (
+      posixPath === ".IA/outputs/" ||
+      posixPath === "docs/.IA/outputs/" ||
+      posixPath === ".setup-boss/runs/"
+    ) {
       violations.push(
         `Arquivos prováveis deve conter apenas arquivos concretos, não diretórios: ${item}`
       );

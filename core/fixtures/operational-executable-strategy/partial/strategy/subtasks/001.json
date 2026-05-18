@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "id": "001",
+  "title": "Rever utilitários",
+  "scope": { "files": ["core/utils.js"], "domains": ["core"] },
+  "dependencies": [],
+  "status": "planned"
+}

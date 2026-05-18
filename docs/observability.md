@@ -12,7 +12,7 @@ scan → architect → run-context.json
 
 ---
 
-## Artefactos por corrida (`<projeto>/.IA/outputs/<run-id>/`)
+## Artefactos por corrida (`<projeto>/docs/.IA/outputs/<run-id>/`; legado: `<projeto>/.IA/outputs/<run-id>/`)
 
 | Artefacto | Função |
 |-----------|--------|
@@ -25,7 +25,7 @@ scan → architect → run-context.json
 | **`review-output.json`**, `review-output.md` | Decisão estruturada (**fonte de decisão do review**) + relatório legível. |
 | `correction-instructions.md` | Instruções para a próxima volta do **executor**. |
 | `knowledge-update.md` | Bloco gerado na etapa knowledge (também append em **`.setup-boss/knowledge-base.md`** no projeto). |
-| `ia-diagnostics.json` | Quando o fluxo pede modo diagnóstico da **`.IA`** no output da corrida. |
+| `ia-diagnostics.json` | Quando o fluxo pede modo diagnóstico da **pasta semântica** (`docs/.IA`; legado `.IA` na raiz) no output da corrida. |
 | **`prompt-sizes.json`** | Quando presente: totais de caracteres por etapa e por bloco do prompt (útil para comparar impacto de cortes no scan). |
 
 ---

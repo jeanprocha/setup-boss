@@ -30,7 +30,7 @@ Descrição por fases da maturidade do produto, alinhada ao estado do repositór
 - **Review** alinhado ao estado persistido e a artefactos compactos quando **`run-context`** é válido
 - **Knowledge** persistente no projeto alvo
 - **Orquestração com controlo de custo**: modelos por etapa (`core/llm-client.js`) e **`llm_usage`** / **`llm_usage_total`** em **`metadata.json`**
-- Histórico por corrida em **`<projeto>/.IA/outputs/<run-id>/`**
+- Histórico por corrida em **`<projeto>/docs/.IA/outputs/<run-id>/`** (legado: **`<projeto>/.IA/outputs/<run-id>/`**)
 
 ---
 

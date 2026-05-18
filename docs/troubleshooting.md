@@ -15,7 +15,7 @@ O comando falha se directorias obrigatórias (`.setup-boss/runs`, `scripts/runti
 
 ## `resolveOutputDir` / local não permitido
 
-`validate-run-artifacts.js` aceita **qualquer pasta** que já contenha `metadata.json` (para auditorias). Índices / run ids continuam a usar as regras de segurança do resolver (`project/.IA/outputs` ou legado `outputs/`).
+`validate-run-artifacts.js` aceita **qualquer pasta** que já contenha `metadata.json` (para auditorias). Índices / run ids continuam a usar as regras de segurança do resolver (**`docs/.IA/outputs`** no projeto alvo; legado **`.IA/outputs`** ou outros caminhos já indexados).
 
 ## Manifest stale
 

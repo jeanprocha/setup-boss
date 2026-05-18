@@ -4,7 +4,7 @@
 
 Atue como Project Profile Agent dentro do pipeline Setup Boss.
 
-Seu papel é criar a baseline inicial da pasta `.IA` de um projeto alvo.
+Seu papel é criar a baseline inicial em **`docs/.IA/`** do projeto alvo (padrão oficial). A pasta **`.IA/`** na raiz existe apenas como **legado compatível** quando o projeto ainda não migrou para `docs/.IA/`.
 
 ---
 

@@ -1,0 +1,178 @@
+/* Setup Boss — shell partilhado (Fase 5+). */
+
+@layer components {
+  /* Lista de atividades (sidebar esquerda) — destaque animado no hover */
+  .sb-activity-row {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .sb-activity-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 1px;
+    pointer-events: none;
+    transition:
+      width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.28s ease,
+      filter 0.22s ease;
+  }
+
+  .sb-activity-row::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: linear-gradient(
+      100deg,
+      color-mix(in oklch, var(--sidebar-foreground) 14%, transparent) 0%,
+      color-mix(in oklch, var(--sidebar-foreground) 7%, transparent) 38%,
+      color-mix(in oklch, var(--sidebar-foreground) 3%, transparent) 62%,
+      transparent 88%
+    );
+    transform: scaleX(0);
+    transform-origin: left center;
+    opacity: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease;
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within {
+    z-index: 1;
+    color: var(--sidebar-foreground);
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover::after,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within::after {
+    transform: scaleX(1);
+    opacity: 1;
+    animation: sb-activity-row-shimmer 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover::before,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within::before {
+    width: 2px;
+    filter: brightness(1.12);
+    box-shadow:
+      2px 0 12px -3px color-mix(in oklch, var(--sidebar-foreground) 22%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--sidebar-foreground) 6%, transparent);
+  }
+
+  .sb-activity-row--running:not(.sb-activity-row--selected):hover::before,
+  .sb-activity-row--running:not(.sb-activity-row--selected):focus-within::before {
+    animation: sb-activity-row-stripe-pulse 1.35s ease-in-out infinite;
+  }
+
+  .sb-activity-row--selected {
+    z-index: 1;
+    margin-inline: 2px;
+    border-radius: 4px;
+    color: var(--sidebar-foreground);
+    background-color: color-mix(
+      in oklch,
+      var(--sidebar-foreground) 8%,
+      var(--sidebar) 92%
+    );
+  }
+
+  .sb-activity-row--selected::before {
+    width: 2px !important;
+    z-index: 2;
+    background-color: var(--sidebar-foreground) !important;
+    filter: none;
+    box-shadow:
+      2px 0 10px -4px color-mix(in oklch, var(--sidebar-foreground) 22%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--sidebar-foreground) 8%, transparent);
+  }
+
+  .sb-activity-row--selected::after {
+    display: none;
+  }
+
+  .sb-activity-row--selected .sb-activity-row__label {
+    font-weight: 500;
+    color: var(--sidebar-foreground);
+  }
+
+  .sb-activity-row--selected .sb-activity-row__marker {
+    color: color-mix(in oklch, var(--sidebar-foreground) 68%, transparent);
+  }
+
+  .sb-activity-row__label {
+    transition:
+      transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+      color 0.18s ease,
+      font-weight 0.18s ease;
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover .sb-activity-row__label,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within .sb-activity-row__label {
+    transform: translateX(3px);
+    font-weight: 500;
+    color: var(--sidebar-foreground);
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover .sb-activity-row__marker,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within .sb-activity-row__marker {
+    transform: scale(1.15);
+    color: color-mix(in oklch, var(--sidebar-foreground) 72%, transparent);
+  }
+
+  .sb-activity-row__marker {
+    transition:
+      transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+      color 0.18s ease;
+  }
+}
+
+@keyframes sb-activity-row-shimmer {
+  0% {
+    filter: brightness(1);
+  }
+  45% {
+    filter: brightness(1.06);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes sb-activity-row-stripe-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.82;
+    filter: brightness(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-activity-row::before,
+  .sb-activity-row::after,
+  .sb-activity-row__label,
+  .sb-activity-row__marker {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover::after,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within::after {
+    transform: none;
+    opacity: 1;
+  }
+
+  .sb-activity-row:not(.sb-activity-row--selected):hover .sb-activity-row__label,
+  .sb-activity-row:not(.sb-activity-row--selected):focus-within .sb-activity-row__label {
+    transform: none;
+  }
+}

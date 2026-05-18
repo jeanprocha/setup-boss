@@ -23,7 +23,7 @@ Registrar agents do Setup Boss, responsabilidades e relação com o pipeline e o
 
 | Uso | Ficheiro | Nota |
 |-----|----------|------|
-| Bootstrap / `.IA` por IA | `project-profile.md` | Usado por `ensure-ia.js` em modos que chamam LLM (ex.: `--full`, enriquecimento semântico após run aprovado). Não é uma etapa nomeada igual às do `run.js`. |
+| Bootstrap / memória semântica (`docs/.IA`) por IA | `project-profile.md` | Usado por `ensure-ia.js` em modos que chamam LLM (ex.: `--full`, enriquecimento semântico após run aprovado). Não é uma etapa nomeada igual às do `run.js`. |
 
 ---
 

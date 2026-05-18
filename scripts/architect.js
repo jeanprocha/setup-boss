@@ -15,6 +15,10 @@ const { getRunId, writeRunIndex } = require("../core/run-resolver");
 const { writePromptSizeRecord } = require("../core/prompt-sizes");
 const { validateTask, extractSection } = require("./shared-utils");
 const { createRuntimeContext } = require("./runtime/runtime-context");
+const {
+  resolveProjectIaDir,
+  resolveProjectIaOutputsDir,
+} = require("./shared/ia-path-resolver");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -379,8 +383,8 @@ async function runArchitect(ctx, opts = {}) {
   const task = io.readFileSync(taskPath, "utf-8");
   validateTask(task);
 
-  const projectIADir = path.join(projectRoot, ".IA");
-  const outputsDirBase = path.join(projectIADir, "outputs");
+  const projectIADir = resolveProjectIaDir(projectRoot).iaDir;
+  const outputsDirBase = resolveProjectIaOutputsDir(projectRoot);
 
   ensureDir(projectIADir);
   ensureDir(outputsDirBase);
@@ -396,7 +400,9 @@ async function runArchitect(ctx, opts = {}) {
     await runScan(projectArg, { outputDir });
     console.log("[ARCHITECT] after runScan");
   } else {
-    console.log("⏭️ Scan pulado por cache recente — baseline .IA + ia-diagnostics");
+    console.log(
+      "⏭️ Scan pulado por cache recente — baseline docs/.IA (legado .IA raiz) + ia-diagnostics",
+    );
     await ensureIA(projectRoot, {
       mode: "diagnostic",
       outputDir,
@@ -418,7 +424,8 @@ async function runArchitect(ctx, opts = {}) {
   );
   const projectIAContext = collectIAContext(projectRoot);
   const projectIAContextBlock =
-    projectIAContext || "(pasta .IA ainda não existente ou vazia)";
+    projectIAContext ||
+    "(documentação IA local ainda ausente ou vazia — padrão docs/.IA; legado .IA na raiz)";
 
   const fullPrompt = `${architectPrompt}
 
@@ -439,7 +446,7 @@ Regras invioláveis:
 - Não proponha instalação de dependência sem justificativa explícita.
 - Não proponha refatoração fora do escopo.
 - Em "## Arquivos prováveis", liste caminhos relativos ao projeto, um por linha.
-- Se houver divergência entre task, scan, .IA e código, pare e reporte em "## Critério de parada".
+- Se houver divergência entre task, scan, documentação IA local (docs/.IA ou .IA legado) e código, pare e reporte em "## Critério de parada".
 - Use PROJECT IA CONTEXT como base semântica persistente do projeto.
 - Use PROJECT SCAN como evidência técnica atual.
 - Se PROJECT IA CONTEXT e PROJECT SCAN divergirem, priorize evidência atual do código e aponte a divergência.
@@ -528,13 +535,17 @@ ${task}
       project_scan_file: projectScanPath,
     },
     source_of_truth: {
-      hierarchy: {
-        "setup-boss/context": "verdade global do sistema",
-        "setup-boss/docs": "documentação operacional",
-        "project/.setup-boss": "verdade técnica local do pipeline",
-        "project/.IA": "verdade semântica local do projeto",
-        "project/.IA/outputs/<run-id>": "histórico da execução",
-      },
+      hierarchy: (() => {
+        const iaRel =
+          path.relative(projectRoot, projectIADir).replace(/\\/g, "/") || "docs/.IA";
+        return {
+          "setup-boss/context": "verdade global do sistema",
+          "setup-boss/docs": "documentação operacional",
+          "project/.setup-boss": "verdade técnica local do pipeline",
+          [`project/${iaRel}`]: "verdade semântica local do projeto",
+          [`project/${iaRel}/outputs/<run-id>`]: "histórico da execução",
+        };
+      })(),
     },
     enforcement: {
       architect: {
@@ -743,8 +754,8 @@ async function main() {
   validateTask(fs.readFileSync(taskPath, "utf-8"));
 
   const outputDirName = providedRunId || getRunId(taskArg);
-  const projectIADir = path.join(projectRoot, ".IA");
-  const outputsDirBase = path.join(projectIADir, "outputs");
+  const projectIADir = resolveProjectIaDir(projectRoot).iaDir;
+  const outputsDirBase = resolveProjectIaOutputsDir(projectRoot);
   const outputDir = path.join(outputsDirBase, outputDirName);
 
   ensureDir(projectIADir);

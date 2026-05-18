@@ -77,11 +77,24 @@ function summarizeRun(outputDir, indexEntry) {
     metadata,
     execution,
     op,
+    runContext,
+    isIntake,
+    intake_classification,
+    intake_confidence,
+    phase1_status,
+    intake_manifest,
   } = loadArtifactsForStatus(outputDir);
 
-  const taskTitle = humanTaskTitle(
+  let taskTitle = humanTaskTitle(
     (runLog && runLog.task) || (metadata && metadata.taskPath) || "",
   );
+  if (isIntake) {
+    const prev =
+      (metadata && metadata.intake_task_preview) ||
+      (runContext && runContext.task && runContext.task.preview) ||
+      "";
+    taskTitle = String(prev).trim().slice(0, 120) || "(intake)";
+  }
 
   const durationMs = durationFromRunLog(runLog);
   const corrections =
@@ -100,7 +113,10 @@ function summarizeRun(outputDir, indexEntry) {
 
   return {
     run_id: indexEntry.run_id,
-    project_root: indexEntry.project_root || (metadata && metadata.projectRoot) || "",
+    project_root:
+      indexEntry.project_root ||
+      (metadata && (metadata.project_root || metadata.projectRoot)) ||
+      "",
     output_dir: outputDir,
     task_title: taskTitle,
     status: op.label,
@@ -116,6 +132,11 @@ function summarizeRun(outputDir, indexEntry) {
     review,
     executorResult,
     architectVal,
+    is_intake: Boolean(isIntake),
+    intake_classification: isIntake ? intake_classification : null,
+    intake_confidence: isIntake ? intake_confidence : null,
+    phase1_status: isIntake ? phase1_status : null,
+    intake_manifest: isIntake ? intake_manifest || null : null,
   };
 }
 

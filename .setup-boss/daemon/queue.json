@@ -2,30 +2,263 @@
   "schemaVersion": 1,
   "jobs": [
     {
-      "id": "job_mp3i51sb_5cf6b23b9b10",
-      "status": "running",
-      "projectRoot": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss",
-      "taskArg": "tasks/task-1.md",
-      "projectArg": ".",
-      "createdAt": "2026-05-13T03:30:35.724Z",
-      "startedAt": "2026-05-13T03:31:57.737Z",
-      "finishedAt": null,
-      "attempts": 1,
-      "maxAttempts": 1,
-      "runId": null,
+      "id": "job_mpar8lan_50f006a2e6b3",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-Y8i0di",
+      "projectId": "proj_e2bc3d4a",
+      "taskArg": "../sb-plan-e2e-proj-Y8i0di/.setup-boss/inbox/20260518-021940-escuro-por-enquanto-apenas-visual-task.md",
+      "projectArg": "../sb-plan-e2e-proj-Y8i0di",
+      "createdAt": "2026-05-18T05:19:40.751Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:19:40.732Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-021940-escuro-por-enquanto-apenas-visual",
       "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:19:40.751Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:19:40.752Z",
       "metadata": {
-        "cli": "enqueue"
+        "skipLlm": true,
+        "source": "plan-approval-e2e",
+        "runId": "20260518-021940-escuro-por-enquanto-apenas-visual",
+        "intakeTaskText": "Criar componente visual de chat na tela de Integrações, reutilizável, responsivo e compatível com tema claro/escuro. Por enquanto apenas visual.",
+        "initialState": "clarification_required",
+        "uiPhase": "clarify",
+        "uiState": "waiting_clarification_answers",
+        "classification": "needs_context"
       },
-      "flowOptions": {
-        "dryRun": true,
-        "forceScan": false,
-        "skipPreflightConfirm": true,
-        "policyProfile": null,
-        "forcePolicyBypass": false,
-        "disableGovernance": false
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:19:40.752Z"
+        }
+      ]
+    },
+    {
+      "id": "job_mpar8uyp_85cd0a1fb762",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-eO5cCU",
+      "projectId": "proj_6c8ff90a",
+      "taskArg": "../sb-plan-e2e-proj-eO5cCU/.setup-boss/inbox/20260518-021953-escuro-por-enquanto-apenas-visual-task.md",
+      "projectArg": "../sb-plan-e2e-proj-eO5cCU",
+      "createdAt": "2026-05-18T05:19:53.281Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:19:53.262Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-021953-escuro-por-enquanto-apenas-visual",
+      "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:19:53.281Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:19:53.281Z",
+      "metadata": {
+        "skipLlm": true,
+        "source": "plan-approval-e2e",
+        "runId": "20260518-021953-escuro-por-enquanto-apenas-visual",
+        "intakeTaskText": "Criar componente visual de chat na tela de Integrações, reutilizável, responsivo e compatível com tema claro/escuro. Por enquanto apenas visual.",
+        "initialState": "clarification_required",
+        "uiPhase": "clarify",
+        "uiState": "waiting_clarification_answers",
+        "classification": "needs_context"
       },
-      "recovery_reason": null
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:19:53.281Z"
+        }
+      ]
+    },
+    {
+      "id": "job_mpar92iz_b624e62d9478",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-rnJF4T",
+      "projectId": "proj_94c89996",
+      "taskArg": "../sb-plan-e2e-proj-rnJF4T/.setup-boss/inbox/20260518-022002-escuro-por-enquanto-apenas-visual-task.md",
+      "projectArg": "../sb-plan-e2e-proj-rnJF4T",
+      "createdAt": "2026-05-18T05:20:03.083Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:20:03.065Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-022002-escuro-por-enquanto-apenas-visual",
+      "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:20:03.083Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:20:03.083Z",
+      "metadata": {
+        "skipLlm": true,
+        "source": "plan-approval-e2e",
+        "runId": "20260518-022002-escuro-por-enquanto-apenas-visual",
+        "intakeTaskText": "Criar componente visual de chat na tela de Integrações, reutilizável, responsivo e compatível com tema claro/escuro. Por enquanto apenas visual.",
+        "initialState": "clarification_required",
+        "uiPhase": "clarify",
+        "uiState": "waiting_clarification_answers",
+        "classification": "needs_context"
+      },
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:20:03.083Z"
+        }
+      ]
+    },
+    {
+      "id": "job_mpar9flu_de410cfb9efb",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-UcSTc6",
+      "projectId": "proj_fe8993d7",
+      "taskArg": "../sb-plan-e2e-proj-UcSTc6/.setup-boss/inbox/20260518-022019-escuro-por-enquanto-apenas-visual-task.md",
+      "projectArg": "../sb-plan-e2e-proj-UcSTc6",
+      "createdAt": "2026-05-18T05:20:20.034Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:20:20.016Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-022019-escuro-por-enquanto-apenas-visual",
+      "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:20:20.034Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:20:20.034Z",
+      "metadata": {
+        "skipLlm": true,
+        "source": "plan-approval-e2e",
+        "runId": "20260518-022019-escuro-por-enquanto-apenas-visual",
+        "intakeTaskText": "Criar componente visual de chat na tela de Integrações, reutilizável, responsivo e compatível com tema claro/escuro. Por enquanto apenas visual.",
+        "initialState": "clarification_required",
+        "uiPhase": "clarify",
+        "uiState": "waiting_clarification_answers",
+        "classification": "needs_context"
+      },
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:20:20.034Z"
+        }
+      ]
+    },
+    {
+      "id": "job_mpar9vmv_3afe7474cc5e",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-AGKAU4",
+      "projectId": "proj_4fdf6ebf",
+      "taskArg": "../sb-plan-e2e-proj-AGKAU4/.setup-boss/inbox/20260518-022040-escuro-por-enquanto-apenas-visual-task.md",
+      "projectArg": "../sb-plan-e2e-proj-AGKAU4",
+      "createdAt": "2026-05-18T05:20:40.807Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:20:40.789Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-022040-escuro-por-enquanto-apenas-visual",
+      "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:20:40.806Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:20:40.807Z",
+      "metadata": {
+        "skipLlm": true,
+        "source": "plan-approval-e2e",
+        "runId": "20260518-022040-escuro-por-enquanto-apenas-visual",
+        "intakeTaskText": "Criar componente visual de chat na tela de Integrações, reutilizável, responsivo e compatível com tema claro/escuro. Por enquanto apenas visual.",
+        "initialState": "clarification_required",
+        "uiPhase": "strategy",
+        "uiState": "strategy_ready",
+        "classification": "needs_context"
+      },
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:20:40.807Z"
+        }
+      ]
+    },
+    {
+      "id": "job_mpasb7tn_468ce82b1a7d",
+      "status": "completed",
+      "projectRoot": "C:\\Users\\pierr\\setup-boss-projects\\bitbucket-org-systemwiser-wiser-bot-front",
+      "projectId": "proj_75abd467",
+      "taskArg": "../../../setup-boss-projects/bitbucket-org-systemwiser-wiser-bot-front/.setup-boss/inbox/20260518-024942-na-tela-de-integracao-criar-um-componente-de-chat-task.md",
+      "projectArg": "../../../setup-boss-projects/bitbucket-org-systemwiser-wiser-bot-front",
+      "createdAt": "2026-05-18T05:49:42.875Z",
+      "startedAt": null,
+      "finishedAt": "2026-05-18T05:49:42.856Z",
+      "attempts": 0,
+      "maxAttempts": 3,
+      "runId": "20260518-024942-na-tela-de-integracao-criar-um-componente-de-chat",
+      "error": null,
+      "lastAttemptAt": null,
+      "retryable": true,
+      "heartbeatAt": null,
+      "lastProgressAt": null,
+      "workerChildPid": null,
+      "stuckSuspected": false,
+      "scheduledAt": null,
+      "availableAt": "2026-05-18T05:49:42.875Z",
+      "delayMs": null,
+      "recurring": null,
+      "availabilityNotifiedAt": "2026-05-18T05:49:42.875Z",
+      "metadata": {
+        "skipLlm": true,
+        "priority": "normal",
+        "source": "mission_control",
+        "runId": "20260518-024942-na-tela-de-integracao-criar-um-componente-de-chat",
+        "intakeTaskText": "na tela de integração, criar um componente de chat",
+        "initialState": "clarification_required",
+        "uiPhase": "strategy",
+        "uiState": "strategy_ready",
+        "classification": "needs_context"
+      },
+      "flowOptions": {},
+      "events": [
+        {
+          "type": "enqueued",
+          "timestamp": "2026-05-18T05:49:42.875Z"
+        }
+      ]
     }
   ]
 }

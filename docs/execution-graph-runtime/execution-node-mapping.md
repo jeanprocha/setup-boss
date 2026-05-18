@@ -28,7 +28,7 @@ Legenda comum:
 |---------|------|-----------|
 | Inputs | `task.md`, `scan-output.md` (ou skip), `ctx`. | Dependências: task + scan branch. |
 | Outputs | `architect-output.md`, `run-context.json`, `metadata.json`, `architect-validation.json`, etc. | Nó que **publica** contexto para executor e shadow plan. |
-| Side effects | LLM; escrita `.IA/outputs`. | Não idempotente (LLM). |
+| Side effects | LLM; escrita em **`docs/.IA/outputs`** (legado: **`.IA/outputs`**). | Não idempotente (LLM). |
 | Gate | `invalid_task` aborta fluxo downstream. | Nó terminal parcial ou aresta condicional “abort”. |
 | Replay sensitivity | **Média/alta** (LLM + temperatura). | Baseline determinística só com seeds/contratos congelados (fora escopo 4.12). |
 | Fingerprint | Conteúdo task + scan + política; hoje não um único hash de “architect node”. | Proposto: hash de inputs estruturais + profile governance. |
@@ -109,7 +109,7 @@ Legenda comum:
 | Aspecto | Hoje | Notas DAG |
 |---------|------|-----------|
 | Onde | `finishKnowledge` após review approved. | Dep: review approved **e** artefactos metadata/review. |
-| Outputs | `knowledge-update.md`, enrich `.IA` projeto (se não dry-run). | |
+| Outputs | `knowledge-update.md`, enrich **`docs/.IA`** do projeto (legado **`.IA`**; se não dry-run). | |
 | Side effects | Escrita fora de outputs run (projeto). | Terminal node “happy path”. |
 | Replay sensitivity | Side effects em projeto — replay node exige dry-run ou branch isolado. | |
 

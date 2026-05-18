@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "001",
+  "title": "Analisar estrutura da tela de integração",
+  "goal": "Mapear componentes e providers antes de criar o chat.",
+  "scope": {
+    "files": ["frontend/app/integracoes/page.tsx"],
+    "domains": ["frontend"]
+  },
+  "dependencies": [],
+  "complexity": { "estimated_score": 3, "risk": 2 },
+  "acceptance_criteria": ["Mapa de extensão da página documentado."],
+  "status": "planned"
+}

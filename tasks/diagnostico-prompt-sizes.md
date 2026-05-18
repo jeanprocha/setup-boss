@@ -62,7 +62,7 @@ O executor aplica PATCH só em ficheiros **já existentes**. Antes de `npm run r
 
 Após a run (com pré-condição cumprida):
 
-- `<projeto>/.IA/outputs/<run-id>/prompt-sizes.json` com entradas por etapa executada.
+- `<projeto>/docs/.IA/outputs/<run-id>/prompt-sizes.json` com entradas por etapa executada (legado: `<projeto>/.IA/outputs/<run-id>/`).
 - `metadata.json` com `llm_usage` / `llm_usage_total` coerentes.
 - `executor-input.md` e `review-output.json` presentes na pasta da corrida.
 

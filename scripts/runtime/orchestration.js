@@ -10,6 +10,15 @@ const { appendProblemHistoryEntry } = require("../../core/problem-history");
 const { getRunId, writeRunIndex } = require("../../core/run-resolver");
 const { validateTask } = require("../shared-utils");
 const { enrichIAAfterApprovedRun } = require("../ensure-ia");
+const { tryGitCommitAfterApprovedRun } = require("../../core/git-approved-run-commit");
+const { tryGitPushAfterApprovedCommit } = require("../../core/git-approved-run-push");
+const { tryGitPrAfterApprovedPush } = require("../../core/git-approved-run-pr");
+const {
+  resolveProjectIaDir,
+  resolveProjectIaOutputsDir,
+  resolveProjectIaOutputDir,
+  isInsideProjectIaOutputs,
+} = require("../shared/ia-path-resolver");
 const { createRuntimeContext, REPO_ROOT } = require("./runtime-context");
 const { runArchitect } = require("../architect");
 const { runExecutor } = require("../executor");
@@ -38,6 +47,9 @@ const {
 } = require("./governance/policy-engine");
 const { applyCliGovernanceToProcessEnv } = require("./governance/policy-loader");
 const { RuntimeTerminalError } = require("./runtime-errors");
+const {
+  validateProjectKnowledgeBase,
+} = require("../../core/validate-project-knowledge-base");
 const { emitBridge } = require("./runtime-event-bridge");
 const {
   runGovernanceRuntimeHook,
@@ -126,15 +138,21 @@ function resolveProjectRoot(projectArg) {
 }
 
 function getProjectIADir(projectArg) {
-  return path.join(resolveProjectRoot(projectArg), ".IA");
+  return resolveProjectIaDir(resolveProjectRoot(projectArg)).iaDir;
 }
 
 function getProjectOutputsDir(projectArg) {
-  return path.join(getProjectIADir(projectArg), "outputs");
+  return resolveProjectIaOutputsDir(resolveProjectRoot(projectArg));
 }
 
 function getOutputDirForProject(projectArg, runId) {
-  return path.join(getProjectOutputsDir(projectArg), runId);
+  return resolveProjectIaOutputDir(resolveProjectRoot(projectArg), runId);
+}
+
+function generatedArtifactRelPath(logger, fileRelToOutputDir) {
+  const projectRoot = resolveProjectRoot(logger.project);
+  const abs = path.resolve(logger.outputDir, fileRelToOutputDir);
+  return path.relative(projectRoot, abs).replace(/\\/g, "/");
 }
 
 function isFreshCache(filePath) {
@@ -291,7 +309,7 @@ function applyBaselineMetricsSnapshot(
     const accPath = path.join(outputDir, "preflight-accuracy.json");
     if (fs.existsSync(accPath)) {
       logger.addGeneratedFile({
-        path: `.IA/outputs/${logger.runId}/preflight-accuracy.json`,
+        path: generatedArtifactRelPath(logger, "preflight-accuracy.json"),
         type: "preflight_accuracy",
       });
     }
@@ -355,12 +373,10 @@ function readRunLog(outputDir) {
 function assertOutputInsideProjectIA(projectRoot, outputDir) {
   const root = path.resolve(projectRoot);
   const resolved = path.resolve(outputDir);
-  const allowedBase = path.join(root, ".IA", "outputs");
-  if (
-    resolved !== allowedBase &&
-    !resolved.startsWith(allowedBase + path.sep)
-  ) {
-    throw new Error("Output fora de project/.IA/outputs.");
+  if (!isInsideProjectIaOutputs(root, resolved)) {
+    throw new Error(
+      "Output fora das pastas docs/.IA/outputs ou .IA/outputs (legado) do projeto.",
+    );
   }
 }
 
@@ -378,10 +394,8 @@ function assertFlowLimits(logger, outputDir) {
 }
 
 function addGeneratedFile(logger, runId, relativeFilePath, type) {
-  const normalizedPath = `.IA/outputs/${runId}/${relativeFilePath}`.replace(
-    /\\/g,
-    "/"
-  );
+  void runId;
+  const normalizedPath = generatedArtifactRelPath(logger, relativeFilePath);
   try {
     logger.addGeneratedFile({ path: normalizedPath, type });
   } catch {
@@ -776,15 +790,97 @@ async function finishKnowledge(ctx, logger, runId, orchestration = {}) {
       const metadata = readJson(metadataPath);
       const reviewOutput = readJson(reviewPath);
       if (!skipProjectEnrich) {
-        await enrichIAAfterApprovedRun({
-          projectRoot: metadata.projectRoot,
-          outputDir: logger.outputDir,
-          metadata,
-          reviewOutput,
-        });
+        try {
+          await enrichIAAfterApprovedRun({
+            projectRoot: metadata.projectRoot,
+            outputDir: logger.outputDir,
+            metadata,
+            reviewOutput,
+          });
+        } catch (enrichOnlyErr) {
+          console.warn(
+            "⚠️ enrichIAAfterApprovedRun (não fatal):",
+            enrichOnlyErr.message || enrichOnlyErr,
+          );
+        }
+        if (String(reviewOutput.status).toLowerCase() === "approved") {
+          try {
+            const commitResult = await tryGitCommitAfterApprovedRun({
+              projectRoot: metadata.projectRoot,
+              outputDir: logger.outputDir,
+              runId,
+            });
+            if (
+              commitResult &&
+              (commitResult.ok === true || commitResult.reason === "already_committed")
+            ) {
+              try {
+                const pushResult = tryGitPushAfterApprovedCommit({
+                  projectRoot: metadata.projectRoot,
+                  outputDir: logger.outputDir,
+                  runId,
+                });
+                if (pushResult && pushResult.ok === true) {
+                  console.log(
+                    `[git-push] enviado para ${pushResult.remote}/${pushResult.branch}.`,
+                  );
+                } else if (
+                  pushResult &&
+                  pushResult.skipped &&
+                  pushResult.reason === "already_pushed"
+                ) {
+                  console.log("[git-push] já enviado (idempotente).");
+                } else if (pushResult && pushResult.ok === false && !pushResult.skipped) {
+                  console.warn(
+                    `[git-push] falhou: ${pushResult.code || "git_push_failed"}`,
+                  );
+                }
+
+                if (
+                  pushResult &&
+                  (pushResult.ok === true || pushResult.reason === "already_pushed")
+                ) {
+                  try {
+                    const prResult = await tryGitPrAfterApprovedPush({
+                      projectRoot: metadata.projectRoot,
+                      outputDir: logger.outputDir,
+                      runId,
+                    });
+                    if (prResult && prResult.ok === true) {
+                      console.log(`[git-pr] PR aberto: ${prResult.url || prResult.id}`);
+                    } else if (
+                      prResult &&
+                      prResult.skipped &&
+                      prResult.reason === "already_opened"
+                    ) {
+                      console.log("[git-pr] PR já registado (idempotente).");
+                    } else if (prResult && prResult.ok === false && !prResult.skipped) {
+                      console.warn(`[git-pr] falhou: ${prResult.code || "git_pr_failed"}`);
+                    }
+                  } catch (prErr) {
+                    console.warn(
+                      "⚠️ tryGitPrAfterApprovedPush (não fatal):",
+                      prErr.message || prErr,
+                    );
+                  }
+                }
+              } catch (pushErr) {
+                console.warn(
+                  "⚠️ tryGitPushAfterApprovedCommit (não fatal):",
+                  pushErr.message || pushErr,
+                );
+              }
+            }
+          } catch (commitErr) {
+            console.warn(
+              "⚠️ tryGitCommitAfterApprovedRun (não fatal):",
+              commitErr.message || commitErr,
+            );
+          }
+        }
       } else {
         console.log(
-          "[RUN] dry-run: enrichIAAfterApprovedRun omitido — patches não aplicados ao projeto (.IA não atualizada)."
+          "[RUN] dry-run: enrichIAAfterApprovedRun omitido — patches não aplicados ao projeto (documentação IA em docs/.IA não atualizada; legado .IA raiz equivalente).",
         );
       }
     }
@@ -1166,6 +1262,20 @@ async function startFlow(taskArg, projectArg, flowOptions = {}) {
 
   try {
     const projectRoot = resolveProjectRoot(projectArg);
+
+    const knowledgeBase = validateProjectKnowledgeBase(projectRoot, {
+      setupBossRoot: ROOT_DIR,
+      forbidSetupBossRoot: true,
+    });
+    if (!knowledgeBase.ok) {
+      console.error(`⛔ ${knowledgeBase.title}`);
+      console.error(knowledgeBase.description);
+      throw new RuntimeTerminalError(knowledgeBase.description, {
+        code: knowledgeBase.code,
+        exitCode: 1,
+      });
+    }
+
     const projectOutputsDir = getProjectOutputsDir(projectArg);
 
     ensureDir(CACHE_DIR);

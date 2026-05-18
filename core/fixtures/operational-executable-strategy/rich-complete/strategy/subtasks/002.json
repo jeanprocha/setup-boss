@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "id": "002",
+  "title": "Criar componente base do chat",
+  "goal": "Implementar ChatPanel com toggle e estados visuais.",
+  "scope": {
+    "files": [
+      "frontend/components/features/integrations/ChatPanel.tsx",
+      "frontend/components/features/integrations/ChatToggle.tsx"
+    ],
+    "domains": ["frontend", "components"]
+  },
+  "dependencies": ["001"],
+  "complexity": { "estimated_score": 5, "risk": 4 },
+  "acceptance_criteria": [
+    "Componente renderiza sem erros",
+    "Toggle abre e fecha o painel"
+  ],
+  "status": "planned"
+}

@@ -20,7 +20,7 @@ Os valores formais estão em `RUNTIME_LIFECYCLE` (ver `scripts/runtime/replay/li
 ## Artefactos
 
 - Índice global: `.setup-boss/runs/<runId>.json`.
-- Saída por corrida: `<projeto>/.IA/outputs/<runId>/` (legado: `outputs/<runId>/`).
+- Saída por corrida: **`<projeto>/docs/.IA/outputs/<runId>/`** (legado: **`<projeto>/.IA/outputs/<runId>/`** ou `outputs/<runId>/` indexado historicamente).
 - Manifest / drift / overlay: ver [docs/dry-run.md](docs/dry-run.md).
 
 Validação programática:

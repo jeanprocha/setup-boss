@@ -3,7 +3,7 @@
 ## Escopo entregue
 
 - Modelo estrutural do pipeline como grafo dirigido (DAG nas arestas **hard**; ciclo de correção modelado em **`repeat_edges`**).
-- Artefacto derivado **`execution-graph.json`** na pasta oficial da corrida: **`<projectRoot>/.IA/outputs/<runId>/`** (o path genérico `outputs/<run-id>/` no repositório setup-boss refere-se ao espelho `.IA/outputs` no projeto alvo).
+- Artefacto derivado **`execution-graph.json`** na pasta oficial da corrida: **`<projectRoot>/docs/.IA/outputs/<runId>/`** (legado: **`<projectRoot>/.IA/outputs/<runId>/`**). O path genérico `outputs/<run-id>/` no repositório setup-boss espelha a pasta de outputs resolvida no projeto alvo (**`docs/.IA/outputs`** preferencial).
 - Flag **`SETUP_BOSS_EXECUTION_GRAPH`**: `off` (default) \| `shadow`.
 - Integração **apenas** em `scripts/runtime/run-runtime.js` (pós-`startFlow` / `startFlowResume`), sem alterar `orchestration.js` nem runtimes de etapa.
 

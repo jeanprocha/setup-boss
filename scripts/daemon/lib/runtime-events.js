@@ -56,6 +56,8 @@ const KNOWN_RUNTIME_EVENT_TYPES = new Set([
   "worker_crashed",
   "job_skipped_project_busy",
   "job_claimed",
+  "run_archived",
+  "run_deleted",
 ]);
 
 /** @type {Set<(e: RuntimeEventRow) => void>} */
@@ -664,10 +666,171 @@ function emitRuntimeEvent(payload) {
 
     fs.appendFileSync(abs, line, { encoding: "utf8" });
 
-  } catch (_) {
+
+    try {
+
+
+      const { logEmit } = require("../../runtime/logger");
+
+
+      logEmit(evt);
+
+
+    } catch (_) {
+
+
+      /* logger opcional */
+
+
+    }
+
+
+  } catch (persistErr) {
+
+
+    try {
+
+
+      const { appendRuntimeTrace } = require("../../runtime-observability/runtime-trace");
+
+
+      appendRuntimeTrace({
+
+
+        component: "runtime_events",
+
+
+        event: "sse_event_emit_failed",
+
+
+        level: "error",
+
+
+        phase: "events",
+
+
+        message: `falha ao append events.jsonl (${type})`,
+
+
+        source: "sse",
+
+
+        derivedFrom: "unknown",
+
+
+        jobId,
+
+
+        runId: evt.runId,
+
+
+        projectId: evt.projectId,
+
+
+        metadata: { eventsPath: abs },
+
+
+      });
+
+
+    } catch (__) {
+
+
+      /* */
+
+
+    }
+
+
+    try {
+
+
+      const { error: logError } = require("../../runtime/logger");
+
+
+      logError(
+
+
+        "runtime.emit.persist_failed",
+
+
+        persistErr instanceof Error
+
+
+          ? persistErr
+
+
+          : new Error(String(persistErr)),
+
+
+        {
+
+
+          type,
+
+
+          eventsPath: abs,
+
+
+          jobId,
+
+
+          runId: evt.runId,
+
+
+        },
+
+
+      );
+
+
+    } catch (___) {
+
+
+      /* */
+
+
+    }
 
 
     return null;
+
+  }
+
+
+
+  try {
+
+
+    const { tryAppendSseTrace } = require("../../runtime-observability/runtime-trace");
+
+
+    tryAppendSseTrace({
+
+
+      type,
+
+
+      jobId: evt.jobId,
+
+
+      runId: evt.runId,
+
+
+      projectId: evt.projectId,
+
+
+      data: baseData,
+
+
+    });
+
+
+  } catch (_) {
+
+
+    /* observabilidade best-effort */
+
 
   }
 
@@ -746,6 +909,9 @@ function readRuntimeEventsFiltered(q = {}) {
   const projectIdFilter =
     q.projectId != null && String(q.projectId).trim() ? String(q.projectId).trim() : null;
 
+  const runKey =
+    q.runKey != null && String(q.runKey).trim() ? String(q.runKey).trim() : null;
+
 
 
   const after =
@@ -785,7 +951,14 @@ function readRuntimeEventsFiltered(q = {}) {
 
     if (jobId && String(e.jobId || "") !== jobId) continue;
 
-    if (projectIdFilter) {
+    if (runKey) {
+      const j = String(e.jobId || "");
+      const r = String(e.runId || "");
+      if (j !== runKey && r !== runKey) continue;
+    }
+
+  // Com runKey, eventos da corrida podem vir sem projectId no topo — não excluir.
+    if (projectIdFilter && !runKey) {
       const top =
         e &&
         /** @type {any} */ (e).projectId != null &&

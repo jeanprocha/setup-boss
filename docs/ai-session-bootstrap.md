@@ -17,9 +17,9 @@ Orquestrador de execução sobre um **projeto alvo** com:
 - **Executor** — alterações por **PATCH** no schema atual: **`operation: patch`**, **`search`** (uma ocorrência no ficheiro), **`replace`**; apenas paths em **`allowed_files`**; validação em **`scripts/executor.js`** (não reescreve ficheiro inteiro pela resposta do modelo).
 - **Review** — **`review-output.json`**; quando **`run-context.json`** é válido e utilizado, os prompts evitam colar task/scan/architect completos.
 - **Correction** — instruções curtas para a próxima volta do **executor**.
-- **Knowledge** — apenas após **`approved`**; atualiza knowledge local e pode acionar enriquecimento **`.IA`**.
+- **Knowledge** — apenas após **`approved`**; atualiza knowledge local e pode acionar enriquecimento em **`docs/.IA/`** (legado: **`.IA/`** na raiz).
 
-**Telemetria**: cada corrida pode registar em **`<projeto>/.IA/outputs/<run-id>/metadata.json`** os campos **`llm_usage`** e **`llm_usage_total`** (ver **`core/llm-usage.js`**). Modelos por variáveis **`_*_MODEL`**, fallback **`OPENAI_MODEL`**. O índice **`setup-boss/.setup-boss/runs/<run-id>.json`** liga o run id à pasta de output no projeto alvo.
+**Telemetria**: cada corrida pode registar em **`<projeto>/docs/.IA/outputs/<run-id>/metadata.json`** (legado: **`<projeto>/.IA/outputs/<run-id>/metadata.json`**) os campos **`llm_usage`** e **`llm_usage_total`** (ver **`core/llm-usage.js`**). Modelos por variáveis **`_*_MODEL`**, fallback **`OPENAI_MODEL`**. O índice **`setup-boss/.setup-boss/runs/<run-id>.json`** liga o run id à pasta de output no projeto alvo.
 
 ---
 

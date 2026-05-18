@@ -1,0 +1,266 @@
+/* Timeline de execução por miniActivity (esteira operacional) */
+
+@layer components {
+  .execution-mini-timeline {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .execution-mini-timeline__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .execution-mini-timeline__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .execution-mini-timeline__mode {
+    font-size: 0.625rem;
+    color: var(--muted-foreground);
+  }
+
+  .execution-mini-timeline__item {
+    position: relative;
+    padding-left: 1.125rem;
+    padding-bottom: 0.875rem;
+  }
+
+  .execution-mini-timeline__item::before {
+    content: "";
+    position: absolute;
+    left: 0.1875rem;
+    top: 0.4rem;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklch, var(--border) 50%, transparent);
+  }
+
+  .execution-mini-timeline__item:last-child::before {
+    bottom: auto;
+    height: 0.5rem;
+  }
+
+  .execution-mini-timeline__item::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.28rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--foreground) 16%, var(--background));
+    border: 1px solid color-mix(in oklch, var(--border) 65%, transparent);
+  }
+
+  .execution-mini-timeline__item--active::after {
+    width: 7px;
+    height: 7px;
+    background: color-mix(in oklch, var(--sidebar-primary) 50%, var(--background));
+    border-color: color-mix(in oklch, var(--sidebar-primary) 45%, transparent);
+    box-shadow: 0 0 0 3px
+      color-mix(in oklch, var(--sidebar-primary) 12%, transparent);
+  }
+
+  .execution-mini-timeline__item--completed::after {
+    background: color-mix(in oklch, var(--chart-2, var(--primary)) 35%, var(--background));
+    border-color: color-mix(in oklch, var(--chart-2, var(--primary)) 30%, transparent);
+    opacity: 0.85;
+  }
+
+  .execution-mini-timeline__item--failed::after {
+    background: color-mix(in oklch, var(--destructive) 40%, var(--background));
+    border-color: color-mix(in oklch, var(--destructive) 35%, transparent);
+  }
+
+  .execution-mini-timeline__item--blocked::after {
+    opacity: 0.65;
+  }
+
+  .execution-mini-timeline__step {
+    border-radius: 0.5rem;
+    border: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
+    background: color-mix(in oklch, var(--muted) 10%, transparent);
+    padding: 0.5rem 0.625rem;
+  }
+
+  .execution-mini-timeline__item--active .execution-mini-timeline__step {
+    border-color: color-mix(in oklch, var(--sidebar-primary) 22%, var(--border));
+    background: color-mix(in oklch, var(--sidebar-primary) 6%, var(--background));
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 3px 14px -4px color-mix(in oklch, var(--sidebar-primary) 10%, transparent);
+  }
+
+  .execution-mini-timeline__item--compact .execution-mini-timeline__step {
+    padding: 0.35rem 0.5rem;
+    background: color-mix(in oklch, var(--muted) 8%, transparent);
+  }
+
+  .execution-mini-timeline__item--upcoming .execution-mini-timeline__step {
+    opacity: 0.88;
+    background: transparent;
+    border-style: dashed;
+    border-color: color-mix(in oklch, var(--border) 45%, transparent);
+  }
+
+  .execution-mini-timeline__step-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .execution-mini-timeline__step-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: color-mix(in oklch, var(--foreground) 92%, transparent);
+  }
+
+  .execution-mini-timeline__item--compact .execution-mini-timeline__step-title {
+    font-weight: 500;
+    color: color-mix(in oklch, var(--foreground) 75%, transparent);
+  }
+
+  .execution-mini-timeline__order {
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
+
+  .execution-mini-timeline__badge {
+    flex-shrink: 0;
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.5625rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .execution-mini-timeline__badge--neutral {
+    background: color-mix(in oklch, var(--muted) 55%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .execution-mini-timeline__badge--primary {
+    background: color-mix(in oklch, var(--primary) 14%, transparent);
+    color: color-mix(in oklch, var(--primary) 85%, var(--foreground));
+  }
+
+  .execution-mini-timeline__badge--success {
+    background: color-mix(in oklch, var(--chart-2, #22c55e) 18%, transparent);
+    color: color-mix(in oklch, var(--chart-2, #16a34a) 80%, var(--foreground));
+  }
+
+  .execution-mini-timeline__badge--warning {
+    background: color-mix(in oklch, #f59e0b 18%, transparent);
+    color: color-mix(in oklch, #b45309 85%, var(--foreground));
+  }
+
+  .execution-mini-timeline__badge--danger {
+    background: color-mix(in oklch, var(--destructive) 16%, transparent);
+    color: var(--destructive);
+  }
+
+  .execution-mini-timeline__badge--review {
+    background: color-mix(in oklch, #8b5cf6 16%, transparent);
+    color: color-mix(in oklch, #6d28d9 85%, var(--foreground));
+  }
+
+  .execution-mini-timeline__body {
+    margin-top: 0.5rem;
+    font-size: 0.625rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+  }
+
+  .execution-mini-timeline__label {
+    color: color-mix(in oklch, var(--foreground) 48%, transparent);
+  }
+
+  .execution-mini-timeline__criteria {
+    margin: 0.375rem 0 0;
+    padding-left: 1rem;
+    list-style: disc;
+  }
+
+  .execution-mini-timeline__criteria li {
+    margin-top: 0.125rem;
+  }
+
+  .execution-mini-timeline__history {
+    margin-top: 0.5rem;
+    padding-top: 0.375rem;
+    border-top: 1px solid color-mix(in oklch, var(--border) 40%, transparent);
+  }
+
+  .execution-mini-timeline__history-title {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: color-mix(in oklch, var(--muted-foreground) 90%, transparent);
+    margin-bottom: 0.25rem;
+  }
+
+  .execution-mini-timeline__history-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .execution-mini-timeline__history-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    font-size: 0.5625rem;
+    color: color-mix(in oklch, var(--muted-foreground) 95%, transparent);
+  }
+
+  .execution-mini-timeline__history-time {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+  }
+
+  .execution-mini-timeline__compact-summary {
+    display: block;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+  }
+
+  .execution-mini-timeline__compact-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .execution-mini-timeline__compact-hint {
+    margin-top: 0.25rem;
+    font-size: 0.5625rem;
+    color: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
+  }
+
+  .execution-mini-timeline__now-hint {
+    margin-top: 0.375rem;
+    font-size: 0.5625rem;
+    font-weight: 500;
+    color: color-mix(in oklch, var(--sidebar-primary) 75%, var(--foreground));
+  }
+}

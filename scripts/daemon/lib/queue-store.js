@@ -1105,6 +1105,108 @@ function updateJob(queueIgnored, jobId, mutator) {
 
 }
 
+/**
+ * Remove job da fila por id de job ou runId. Recusa job activo (running/cancelling).
+ * @param {string} key
+ * @returns {{ ok: true, job: Job } | { ok: false, code: string, message: string }}
+ */
+function removeJobFromQueueByKey(key) {
+  const k = String(key || "").trim();
+  if (!k) {
+    return { ok: false, code: "invalid_key", message: "Identificador vazio." };
+  }
+
+  return withQueueExclusiveSync(() => {
+    const queue = loadQueueUnsafeInner();
+
+    let idx = queue.jobs.findIndex((j) => j && String(j.id) === k);
+
+    if (idx < 0) {
+      idx = queue.jobs.findIndex(
+        (j) => j && j.runId != null && String(j.runId) === k,
+      );
+    }
+
+    if (idx < 0) {
+      return {
+        ok: false,
+        code: "not_found",
+        message: "Job ou corrida não encontrados na fila.",
+      };
+    }
+
+    const job = queue.jobs[idx];
+
+    const st = String(job.status || "");
+
+    if (st === "running" || st === "cancelling") {
+      return {
+        ok: false,
+        code: "job_active",
+        message:
+          "Não é possível excluir enquanto o job está em execução ou a ser cancelado. Aguarde ou cancele primeiro.",
+      };
+    }
+
+    const removed = job;
+
+    queue.jobs.splice(idx, 1);
+
+    saveQueue(queue);
+
+    return { ok: true, job: removed };
+  });
+}
+
+/**
+ * Remove todos os jobs de um projectId. Recusa se existir running/cancelling.
+ * @param {string} projectIdNorm
+ * @returns {{ ok: true, removed: number } | { ok: false, code: string, message: string }}
+ */
+function purgeJobsForProjectId(projectIdNorm) {
+  const pid =
+    projectIdNorm != null ? String(projectIdNorm).trim() : "";
+  if (!pid)
+    return {
+      ok: false,
+      code: "invalid_request",
+      message: "projectId vazio.",
+    };
+
+  return withQueueExclusiveSync(() => {
+    const queue = loadQueueUnsafeInner();
+
+    const jobProjectId = (j) => {
+      if (!j || typeof j !== "object") return "";
+      if (j.projectId != null && String(j.projectId).trim())
+        return String(j.projectId).trim();
+      if (typeof j.projectRoot === "string" && String(j.projectRoot).trim())
+        return deriveProjectId(j.projectRoot);
+      return "";
+    };
+
+    for (const j of queue.jobs) {
+      if (!j) continue;
+      if (jobProjectId(j) !== pid) continue;
+      const st = String(j.status || "").trim();
+      if (st === "running" || st === "cancelling") {
+        return {
+          ok: false,
+          code: "project_has_active_jobs",
+          message:
+            "Existem atividades em execução neste projecto. Aguarde ou cancele antes de eliminar o projecto.",
+        };
+      }
+    }
+
+    const before = queue.jobs.length;
+    queue.jobs = queue.jobs.filter((j) => jobProjectId(j) !== pid);
+    const removed = before - queue.jobs.length;
+    saveQueue(queue);
+    return { ok: true, removed };
+  });
+}
+
 function listSorted(queue) {
 
 
@@ -1979,6 +2081,8 @@ module.exports = {
 
   updateJob,
 
+  removeJobFromQueueByKey,
+
   listSorted,
 
   countsByStatus,
@@ -1988,6 +2092,8 @@ module.exports = {
   migrateQueuePersistProjectIdsIfNeeded,
 
   withQueueExclusiveSync,
+
+  purgeJobsForProjectId,
 
   appendJobEvent,
 

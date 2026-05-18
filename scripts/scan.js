@@ -8,6 +8,7 @@ const { recordLLMUsage } = require("../core/llm-usage");
 const { ensureIA, collectIAContext } = require("./ensure-ia");
 const { resolveOutputDir } = require("../core/run-resolver");
 const { writePromptSizeRecord } = require("../core/prompt-sizes");
+const { resolveProjectIaDir } = require("./shared/ia-path-resolver");
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -19,7 +20,6 @@ const SOURCE_OF_TRUTH = {
   globalContextDir: path.join(ROOT_DIR, "context"),
   operationalDocsDir: path.join(ROOT_DIR, "docs"),
   projectSetupDirName: ".setup-boss",
-  projectIADirName: ".IA",
 };
 
 function envMaxChars(key, fallback) {
@@ -244,6 +244,12 @@ async function runScan(projectArg, options = {}) {
   }
 
   const projectRoot = path.resolve(ROOT_DIR, projectArg);
+  const iaResolved = resolveProjectIaDir(projectRoot);
+  const projectIARelPath =
+    path.relative(projectRoot, iaResolved.iaDir).replace(/\\/g, "/") ||
+    "docs/.IA";
+  const projectOutputsRelPath = `${projectIARelPath}/outputs/<run-id>`;
+
   const projectSetupDir = path.join(
     projectRoot,
     SOURCE_OF_TRUTH.projectSetupDirName
@@ -289,15 +295,15 @@ async function runScan(projectArg, options = {}) {
 setup-boss/context = verdade global do sistema
 setup-boss/docs = documentação operacional
 project/.setup-boss = verdade técnica local do pipeline
-project/.IA = verdade semântica local do projeto
-project/.IA/outputs/<run-id> = histórico da execução
+project/${projectIARelPath} = verdade semântica local do projeto
+project/${projectOutputsRelPath} = histórico da execução
 
 ## SOURCE OF TRUTH RULES
 
 - Use setup-boss/context apenas como verdade global do sistema.
 - Use setup-boss/docs apenas como documentação operacional.
 - Use project/.setup-boss como verdade técnica local do pipeline.
-- Use project/.IA como base semântica persistente do projeto.
+- Use project/${projectIARelPath} como base semântica persistente do projeto (padrão docs/.IA; legado .IA na raiz quando aplicável).
 - Não misture knowledge global com knowledge local do projeto.
 - Não escreva informações locais do projeto em setup-boss/context.
 - Não trate outputs antigos como fonte de verdade permanente.
@@ -309,7 +315,7 @@ ${operationalDocs}
 ${projectLocalTruth}
 
 ## PROJECT IA CONTEXT
-${projectIAContext || "(pasta .IA ainda não existente ou vazia)"}
+${projectIAContext || "(documentação IA local ainda ausente ou vazia — padrão docs/.IA; legado .IA na raiz)"}
 
 ## PROJECT TARGET
 ${projectRoot}
@@ -339,7 +345,8 @@ ${importantFiles}
         file_tree: fileTree.length,
         important_files: importantFiles.length,
         project_ia_context: String(
-          projectIAContext || "(pasta .IA ainda não existente ou vazia)"
+          projectIAContext ||
+            "(documentação IA local ainda ausente ou vazia — padrão docs/.IA; legado .IA na raiz)"
         ).length,
       },
     });
@@ -373,7 +380,7 @@ ${importantFiles}
   const iaMode = resolvedPipelineOutput ? "diagnostic" : "minimal";
 
   console.log(
-    `[SCAN] garantindo .IA (baseline, sem IA) + diagnóstico: modo=${iaMode}`,
+    `[SCAN] garantindo documentação IA (baseline, sem LLM) + diagnóstico: modo=${iaMode}`,
   );
 
   const iaResult = await ensureIA(projectRoot, {
@@ -382,9 +389,9 @@ ${importantFiles}
     mode: iaMode,
   });
 
-  console.log("[SCAN] .IA dir:", iaResult.iaDir);
+  console.log("[SCAN] IA dir:", iaResult.iaDir);
   if (iaResult.created.length > 0) {
-    console.log("[SCAN] .IA files created:", iaResult.created.join(", "));
+    console.log("[SCAN] IA baseline files created:", iaResult.created.join(", "));
   }
 
   if (resolvedPipelineOutput) {

@@ -49,7 +49,8 @@ Ramificações a partir do **review**:
 
 - **setup-boss** (este repositório) = sistema e scripts.
 - **`.setup-boss/`** no projeto alvo = contexto técnico local (scan, knowledge).
-- **`.IA/`** no projeto alvo = memória semântica e **`outputs/<run-id>/`** por corrida.
+- **`docs/.IA/`** no projeto alvo = memória semântica corporativa (padrão oficial) e **`docs/.IA/outputs/<run-id>/`** por corrida.
+- **`.IA/`** na raiz do projeto alvo = **legado compatível** (mesmo papel quando ainda não há `docs/.IA/` ou durante migração).
 
 **Motivo:** separação de responsabilidades e histórico por projeto.
 
@@ -67,7 +68,7 @@ Cada projeto mantém o seu **`.setup-boss/knowledge-base.md`** (append na etapa 
 
 **correction** gera **`correction-instructions.md`** para a volta seguinte; o **executor** aplica **PATCH**; o **review** reavalia com base em **`review-output.json`**.
 
-**Motivo:** rastreio num único **`outputs/<run-id>/`** e menos improviso fora do pipeline.
+**Motivo:** rastreio num único **`docs/.IA/outputs/<run-id>/`** (legado: **`.IA/outputs/<run-id>/`**) e menos improviso fora do pipeline.
 
 ---
 

@@ -1,12 +1,50 @@
 {
-  "running": false,
-  "pid": null,
-  "startedAt": null,
+  "running": true,
+  "pid": 34636,
+  "startedAt": "2026-05-18T05:38:43.745Z",
   "currentJobId": null,
-  "queue": {
-    "running": 1
+  "worker": {
+    "busy": false,
+    "currentJobId": null,
+    "currentPhase": null,
+    "lastPipelineEventAt": null
   },
-  "updatedAt": "2026-05-13T03:31:59.209Z",
-  "stoppedAt": "2026-05-13T03:31:59.207Z",
-  "uptimeMsApprox": null
+  "queue": {
+    "completed": 6
+  },
+  "updatedAt": "2026-05-18T05:55:37.228Z",
+  "daemonVersion": "3.10",
+  "processedJobs": 0,
+  "workerList": [
+    {
+      "workerId": "worker_1",
+      "status": "idle",
+      "jobId": null,
+      "projectId": null,
+      "startedAt": null,
+      "lastHeartbeatAt": null
+    }
+  ],
+  "workers": {
+    "total": 1,
+    "busy": 0,
+    "idle": 1,
+    "stopping": 0
+  },
+  "concurrency": {
+    "maxWorkers": 1,
+    "maxWorkersPerProject": 1
+  },
+  "scheduler": {
+    "lastTickAt": "2026-05-18T05:55:37.228Z",
+    "pollMs": 1500,
+    "lastActivations": 0
+  },
+  "runtimeVersion": "2.0.0",
+  "runningJobsCount": 0,
+  "featureFlags": {
+    "isolatedDataDir": false,
+    "e2eNoopWorker": false
+  },
+  "uptimeMsApprox": 1013483
 }

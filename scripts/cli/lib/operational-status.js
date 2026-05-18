@@ -126,6 +126,44 @@ function deriveOperationalStatus(outputDir, extras = {}) {
 }
 
 function loadArtifactsForStatus(outputDir) {
+  const metadata = readJsonSafe(path.join(outputDir, "metadata.json"), 2_500_000);
+
+  if (metadata && metadata.run_type === "intake") {
+    const runContext = readJsonSafe(path.join(outputDir, "run-context.json"), 512_000);
+    const phase1 =
+      runContext && typeof runContext.phase1 === "object" ? runContext.phase1 : {};
+    const cls =
+      phase1.classification && phase1.classification.value != null
+        ? String(phase1.classification.value)
+        : "";
+    const conf =
+      phase1.classification && phase1.classification.confidence != null
+        ? String(phase1.classification.confidence)
+        : "";
+    const ph1 = phase1.status != null ? String(phase1.status) : "";
+    const op = {
+      label: cls ? `INTAKE ${cls}` : "INTAKE",
+      bucket: "intake",
+      execution_mode: "intake",
+    };
+    return {
+      runLog: null,
+      review: null,
+      executorResult: null,
+      architectVal: null,
+      metadata,
+      execution: null,
+      op,
+      runContext: runContext || null,
+      isIntake: true,
+      intake_classification: cls,
+      intake_confidence: conf,
+      phase1_status: ph1,
+      intake_manifest:
+        phase1.manifest != null ? String(phase1.manifest) : "",
+    };
+  }
+
   const runLog = readJsonSafe(path.join(outputDir, "run-log.json"), 2_500_000);
   const review = readJsonSafe(path.join(outputDir, "review-output.json"), 512_000);
   const executorResult = readJsonSafe(
@@ -136,7 +174,6 @@ function loadArtifactsForStatus(outputDir) {
     path.join(outputDir, "architect-validation.json"),
     256_000,
   );
-  const metadata = readJsonSafe(path.join(outputDir, "metadata.json"), 2_500_000);
   const execution = metadata && metadata.execution;
 
   const op = deriveOperationalStatus(outputDir, {
@@ -147,7 +184,21 @@ function loadArtifactsForStatus(outputDir) {
     execution,
   });
 
-  return { runLog, review, executorResult, architectVal, metadata, execution, op };
+  return {
+    runLog,
+    review,
+    executorResult,
+    architectVal,
+    metadata,
+    execution,
+    op,
+    runContext: null,
+    isIntake: false,
+    intake_classification: "",
+    intake_confidence: "",
+    phase1_status: "",
+    intake_manifest: "",
+  };
 }
 
 module.exports = {

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "recommended_mode": "standard",
+  "rationale": ["UI com múltiplos componentes"],
+  "cost_profile": "balanced",
+  "quality_profile": "balanced"
+}

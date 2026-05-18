@@ -2,6 +2,7 @@
  * Preflight: analise + governanca (Fase 2.7) + artefactos + gates interativos.
  */
 
+const path = require("path");
 const { analyzePreflight } = require("./analyzer");
 const { writePreflightArtifacts } = require("./artifacts");
 const {
@@ -14,23 +15,33 @@ const {
   writeGovernanceArtifacts,
 } = require("../governance/policy-engine");
 const { RuntimeTerminalError } = require("../runtime-errors");
+const { REPO_ROOT } = require("../runtime-context");
+
+function preflightArtifactRelPath(logger, fileName) {
+  if (!logger || !logger.outputDir || logger.project == null) {
+    throw new TypeError("addPreflightGeneratedFiles: logger inválido");
+  }
+  const projectRoot = path.resolve(REPO_ROOT, String(logger.project));
+  const abs = path.resolve(logger.outputDir, fileName);
+  return path.relative(projectRoot, abs).replace(/\\/g, "/");
+}
 
 function addPreflightGeneratedFiles(logger, runId) {
   if (!logger || !runId) return;
   logger.addGeneratedFile({
-    path: `.IA/outputs/${runId}/preflight-analysis.json`,
+    path: preflightArtifactRelPath(logger, "preflight-analysis.json"),
     type: "preflight_analysis",
   });
   logger.addGeneratedFile({
-    path: `.IA/outputs/${runId}/preflight-summary.md`,
+    path: preflightArtifactRelPath(logger, "preflight-summary.md"),
     type: "preflight_summary",
   });
   logger.addGeneratedFile({
-    path: `.IA/outputs/${runId}/policy-report.json`,
+    path: preflightArtifactRelPath(logger, "policy-report.json"),
     type: "policy_report",
   });
   logger.addGeneratedFile({
-    path: `.IA/outputs/${runId}/governance-decisions.json`,
+    path: preflightArtifactRelPath(logger, "governance-decisions.json"),
     type: "governance_decisions",
   });
 }

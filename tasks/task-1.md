@@ -32,7 +32,7 @@ O placeholder deve orientar o usuário sobre o que pode ser pesquisado.
 
 - Alterar arquivos fora de `components/AgendaDiaria.tsx`
 - Alterar scripts do Setup Boss
-- Alterar outputs da pasta `.IA`
+- Alterar outputs em `docs/.IA` do projeto alvo (legado: pasta `.IA` na raiz)
 - Alterar schema, executor, review ou architect
 - Refatorar layout geral
 - Adicionar dependências

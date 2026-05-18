@@ -1,4 +1,5 @@
 const path = require("path");
+const os = require("os");
 const { getSetupBossRepoRoot } = require("./repo-root");
 
 /**
@@ -23,7 +24,26 @@ function getDaemonDirs() {
     queuePath: path.join(base, "daemon", "queue.json"),
     queueLockPath: path.join(base, "daemon", "queue.lock"),
     projectsPath: path.join(base, "projects.json"),
+    workspacesPath: path.join(base, "workspaces.json"),
+    workspaceRunsDir: path.join(base, "workspace-runs"),
+    workspaceRunsIndexPath: path.join(base, "workspace-runs", "index.json"),
   };
 }
 
-module.exports = { getDaemonDirs };
+/**
+ * Directório onde o daemon clona projectos Git registados via API.
+ * `SETUP_BOSS_PROJECTS_DIR` (absoluto) tem prioridade; por defeito `~/setup-boss-projects`.
+ */
+function getManagedProjectsRoot() {
+  const env = process.env.SETUP_BOSS_PROJECTS_DIR;
+  if (env != null && String(env).trim()) {
+    return path.resolve(String(env).trim());
+  }
+  const home = os.homedir();
+  if (home && String(home).trim()) {
+    return path.join(String(home).trim(), "setup-boss-projects");
+  }
+  return path.join(getDaemonDirs().setupBossDir, "git-projects");
+}
+
+module.exports = { getDaemonDirs, getManagedProjectsRoot };

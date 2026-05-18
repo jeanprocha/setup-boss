@@ -4,6 +4,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { resolveProjectIaDir } = require("../../shared/ia-path-resolver");
 const { collectProjectLite } = require("./project-lite");
 const {
   scoreKeywords,
@@ -274,7 +275,7 @@ function analyzePreflight(params) {
     risk.tier,
   );
 
-  const iaMarkerDir = path.join(params.projectRootAbs, ".IA");
+  const iaMarkerDir = resolveProjectIaDir(params.projectRootAbs).iaDir;
   let iaMarkerCount = 0;
   if (fs.existsSync(iaMarkerDir)) {
     try {

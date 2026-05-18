@@ -6,6 +6,76 @@ const {
   countsByStatus,
 } = require("./queue-store");
 
+/** Evita spam no tick quando o disco bloqueia (Defender, sync, indexação). */
+let lastStatusWriteFailLogMs = 0;
+
+function sleepBusyWaitSync(ms) {
+  const end = Date.now() + Math.max(0, ms);
+  while (Date.now() < end) {
+    /* spin — curto, só entre retries de status */
+  }
+}
+
+/**
+ * Escreve ficheiro de forma tolerante a bloqueios breves no Windows (UNKNOWN, EPERM).
+ * 1) ficheiro temporário no mesmo directório; 2) rename atómico; 3) retries com backoff.
+ *
+ * @param {string} destPath
+ * @param {string} utf8Content
+ */
+function writeFileReplaceWithRetrySync(destPath, utf8Content) {
+  const dir = path.dirname(destPath);
+  const base = path.basename(destPath);
+  const maxAttempts = 8;
+  let lastErr = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const tmpPath = path.join(dir, `.${base}.${process.pid}.${attempt}.tmp`);
+    try {
+      fs.writeFileSync(tmpPath, utf8Content, "utf8");
+      try {
+        if (fs.existsSync(destPath)) {
+          try {
+            fs.unlinkSync(destPath);
+          } catch (_) {
+            /* destino pode estar momentaneamente bloqueado */
+          }
+        }
+        fs.renameSync(tmpPath, destPath);
+        return;
+      } catch (e) {
+        lastErr = e;
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch (_) {
+          /* */
+        }
+      }
+    } catch (e) {
+      lastErr = e;
+      try {
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+      } catch (_) {
+        /* */
+      }
+    }
+
+    sleepBusyWaitSync(15 * (attempt + 1));
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      fs.writeFileSync(destPath, utf8Content, "utf8");
+      return;
+    } catch (e) {
+      lastErr = e;
+      sleepBusyWaitSync(40 * (attempt + 1));
+    }
+  }
+
+  throw lastErr || new Error("writeFileReplaceWithRetrySync: falha desconhecida");
+}
+
 function readRepoSemanticVersion(repoRoot) {
   try {
     const raw = fs.readFileSync(path.join(repoRoot, "package.json"), "utf8");
@@ -168,10 +238,20 @@ function writeDaemonStatus(patch) {
 
   else base.uptimeMsApprox = null;
 
-
-  fs.writeFileSync(statusPath, JSON.stringify(base, null, 2), "utf-8");
-
-
+  const payload = JSON.stringify(base, null, 2);
+  try {
+    writeFileReplaceWithRetrySync(statusPath, payload);
+  } catch (e) {
+    const now = Date.now();
+    if (now - lastStatusWriteFailLogMs > 30_000) {
+      lastStatusWriteFailLogMs = now;
+      const msg = e && e.message ? String(e.message) : String(e);
+      const code = e && e.code ? String(e.code) : "";
+      console.error(
+        `[setup-bossd] writeDaemonStatus: não foi possível gravar status.json (${code || "?"}) — ${msg}. O daemon continua; verifique permissões, antivirus ou sync sobre .setup-boss/daemon/.`,
+      );
+    }
+  }
 }
 
 function readDaemonStatus() {

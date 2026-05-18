@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "ordering_mode": "linear",
+  "ordered_subtasks": [
+    { "position": 1, "subtask_id": "001", "title": "Analisar estrutura da tela de integração", "depends_on": [] },
+    { "position": 2, "subtask_id": "002", "title": "Criar componente base do chat", "depends_on": ["001"] },
+    { "position": 3, "subtask_id": "003", "title": "Integrar chat na tela e validar visualmente", "depends_on": ["002"] }
+  ],
+  "blocking_subtasks": [{ "subtask_id": "001" }],
+  "dependency_warnings": []
+}

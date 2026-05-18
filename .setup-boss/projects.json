@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {
+      "projectId": "proj_fc0e9e33",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-0zSA93\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T13:45:29.940Z",
+      "lastSeenAt": "2026-05-15T13:45:29.949Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_db625b68",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-DJ30Un\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T13:56:24.765Z",
+      "lastSeenAt": "2026-05-15T13:56:24.769Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_00e6abd0",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-dn4bd7\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T13:56:24.803Z",
+      "lastSeenAt": "2026-05-15T13:56:24.806Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_5b0001e2",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-uqvI0m\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T13:56:56.263Z",
+      "lastSeenAt": "2026-05-15T13:56:56.267Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_e4d8e5f2",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-rRvBsa\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T13:56:56.311Z",
+      "lastSeenAt": "2026-05-15T13:56:56.314Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_f3a7d6fe",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-cKUELV\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T13:57:36.118Z",
+      "lastSeenAt": "2026-05-15T13:57:36.122Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_1e721a8c",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-nvXt1R\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T13:57:36.163Z",
+      "lastSeenAt": "2026-05-15T13:57:36.167Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_2e1181a9",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-uHY6lM\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T13:57:48.772Z",
+      "lastSeenAt": "2026-05-15T13:57:48.776Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_ecd4f25f",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-kA7TJK\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T13:57:48.875Z",
+      "lastSeenAt": "2026-05-15T13:57:48.878Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_474629e1",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-exec-trigger-jXVip6",
+      "displayName": "sb-exec-trigger-jXVip6",
+      "firstSeenAt": "2026-05-15T14:16:59.678Z",
+      "lastSeenAt": "2026-05-15T14:16:59.678Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_2f67e4d8",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-c2JaNZ\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:01:35.619Z",
+      "lastSeenAt": "2026-05-15T15:01:35.628Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_88fc6d3a",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-41gOcs\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:01:49.182Z",
+      "lastSeenAt": "2026-05-15T15:01:49.186Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_6cb7b762",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-cRnV7U\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:02:11.715Z",
+      "lastSeenAt": "2026-05-15T15:02:11.719Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_e59a0004",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-EwTVdW\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:02:25.377Z",
+      "lastSeenAt": "2026-05-15T15:02:25.382Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_7ca3d337",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\dbg-ZBdsqj\\demo",
+      "displayName": "demo",
+      "firstSeenAt": "2026-05-15T15:02:35.540Z",
+      "lastSeenAt": "2026-05-15T15:02:35.544Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_a5ac0c13",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-bp1L0l\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:02:56.340Z",
+      "lastSeenAt": "2026-05-15T15:02:56.345Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_0c89d506",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-ZAHv7e\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:03:45.195Z",
+      "lastSeenAt": "2026-05-15T15:03:45.199Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_f619a718",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-9EpbB3\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:04:02.005Z",
+      "lastSeenAt": "2026-05-15T15:04:02.010Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_63a668fa",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-zBQtQo\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:04:11.737Z",
+      "lastSeenAt": "2026-05-15T15:04:11.740Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_9cd20b31",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-smoke-517-life-FHuoYL\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T15:13:56.630Z",
+      "lastSeenAt": "2026-05-15T15:13:56.634Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_ac55bbb3",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-be1unb\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T17:55:59.660Z",
+      "lastSeenAt": "2026-05-15T17:55:59.664Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_2d599ae9",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-3Wnfwo\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T17:56:55.495Z",
+      "lastSeenAt": "2026-05-15T17:56:55.500Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_21592227",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-b7W6CE\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T18:45:54.027Z",
+      "lastSeenAt": "2026-05-15T18:45:54.034Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_d9644eb0",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-VA7K9o\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T18:46:11.181Z",
+      "lastSeenAt": "2026-05-15T18:46:11.190Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_4a11d424",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-828GNC\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T19:43:03.425Z",
+      "lastSeenAt": "2026-05-15T19:43:03.432Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_f9fd6e12",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-5hMEMe\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T19:43:03.544Z",
+      "lastSeenAt": "2026-05-15T19:43:03.554Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_68cf4df7",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-no-plan-fTq9SV\\demo-no-plan",
+      "displayName": "demo-no-plan",
+      "firstSeenAt": "2026-05-15T19:43:03.605Z",
+      "lastSeenAt": "2026-05-15T19:43:03.611Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_11236a59",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-e2e-z2PED0\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-15T19:53:04.739Z",
+      "lastSeenAt": "2026-05-15T19:53:04.746Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_0cfa5e41",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-block-kAaY60\\demo-block",
+      "displayName": "demo-block",
+      "firstSeenAt": "2026-05-15T19:53:04.912Z",
+      "lastSeenAt": "2026-05-15T19:53:04.923Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_57e74e21",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-clar-no-plan-JNMQDU\\demo-no-plan",
+      "displayName": "demo-no-plan",
+      "firstSeenAt": "2026-05-15T19:53:05.032Z",
+      "lastSeenAt": "2026-05-15T19:53:05.038Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_0ed2aac7",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-Z2ya4j\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:04:11.101Z",
+      "lastSeenAt": "2026-05-16T06:04:11.109Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_d8a7031d",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-4XJK2O\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:04:44.057Z",
+      "lastSeenAt": "2026-05-16T06:04:44.067Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_5b976a54",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-DAygAg\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:04:51.281Z",
+      "lastSeenAt": "2026-05-16T06:04:51.289Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_1ae48576",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-oZ43ip\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:12:26.859Z",
+      "lastSeenAt": "2026-05-16T06:12:26.869Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_deda8a5f",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-cXNXRm\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:12:54.310Z",
+      "lastSeenAt": "2026-05-16T06:12:54.316Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_42e206c3",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-intake-api-ok-zABOX9\\demo-project",
+      "displayName": "demo-project",
+      "firstSeenAt": "2026-05-16T06:23:29.287Z",
+      "lastSeenAt": "2026-05-16T06:23:29.295Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_554be1f4",
+      "projectRoot": "C:\\Users\\pierr\\Documents\\automacao\\setup-boss",
+      "displayName": "setup-boss",
+      "firstSeenAt": "2026-05-16T18:24:30.916Z",
+      "lastSeenAt": "2026-05-16T18:25:53.443Z",
+      "lastJobId": null,
+      "jobCounts": {},
+      "metadata": {}
+    },
+    {
+      "projectId": "proj_75abd467",
+      "projectRoot": "C:\\Users\\pierr\\setup-boss-projects\\bitbucket-org-systemwiser-wiser-bot-front",
+      "displayName": "bitbucket-org-systemwiser-wiser-bot-front",
+      "firstSeenAt": "2026-05-16T19:38:56.475Z",
+      "lastSeenAt": "2026-05-18T05:49:42.884Z",
+      "lastJobId": "job_mpasb7tn_468ce82b1a7d",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-024942-na-tela-de-integracao-criar-um-componente-de-chat"
+      }
+    },
+    {
+      "projectId": "proj_e2bc3d4a",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-Y8i0di",
+      "displayName": "sb-plan-e2e-proj-Y8i0di",
+      "firstSeenAt": "2026-05-18T05:19:40.753Z",
+      "lastSeenAt": "2026-05-18T05:19:40.760Z",
+      "lastJobId": "job_mpar8lan_50f006a2e6b3",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-021940-escuro-por-enquanto-apenas-visual"
+      }
+    },
+    {
+      "projectId": "proj_6c8ff90a",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-eO5cCU",
+      "displayName": "sb-plan-e2e-proj-eO5cCU",
+      "firstSeenAt": "2026-05-18T05:19:53.282Z",
+      "lastSeenAt": "2026-05-18T05:19:53.290Z",
+      "lastJobId": "job_mpar8uyp_85cd0a1fb762",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-021953-escuro-por-enquanto-apenas-visual"
+      }
+    },
+    {
+      "projectId": "proj_94c89996",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-rnJF4T",
+      "displayName": "sb-plan-e2e-proj-rnJF4T",
+      "firstSeenAt": "2026-05-18T05:20:03.085Z",
+      "lastSeenAt": "2026-05-18T05:20:03.093Z",
+      "lastJobId": "job_mpar92iz_b624e62d9478",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-022002-escuro-por-enquanto-apenas-visual"
+      }
+    },
+    {
+      "projectId": "proj_fe8993d7",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-UcSTc6",
+      "displayName": "sb-plan-e2e-proj-UcSTc6",
+      "firstSeenAt": "2026-05-18T05:20:20.036Z",
+      "lastSeenAt": "2026-05-18T05:20:20.044Z",
+      "lastJobId": "job_mpar9flu_de410cfb9efb",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-022019-escuro-por-enquanto-apenas-visual"
+      }
+    },
+    {
+      "projectId": "proj_4fdf6ebf",
+      "projectRoot": "C:\\Users\\pierr\\AppData\\Local\\Temp\\sb-plan-e2e-proj-AGKAU4",
+      "displayName": "sb-plan-e2e-proj-AGKAU4",
+      "firstSeenAt": "2026-05-18T05:20:40.808Z",
+      "lastSeenAt": "2026-05-18T05:20:40.815Z",
+      "lastJobId": "job_mpar9vmv_3afe7474cc5e",
+      "jobCounts": {},
+      "metadata": {
+        "lastRunId": "20260518-022040-escuro-por-enquanto-apenas-visual"
+      }
+    }
+  ]
+}

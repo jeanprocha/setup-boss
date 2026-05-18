@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
+const { resolveProjectIaDir } = require("../scripts/shared/ia-path-resolver");
+
 const SCHEMA_VERSION = "1.0.0";
-const IA_DIR = ".IA";
 const HISTORY_FILE = "09-problem-history.jsonl";
 
 function nil(v, fallback = null) {
@@ -25,9 +26,10 @@ function assertSafeHistoryPath(projectRoot, historyPath) {
     throw new Error("problem-history: caminho fora do projeto.");
   }
 
-  const normalized = rel.replace(/\\/g, "/");
+  const { iaDir } = resolveProjectIaDir(root);
+  const expected = path.resolve(path.join(iaDir, HISTORY_FILE));
 
-  if (normalized !== `${IA_DIR}/${HISTORY_FILE}`) {
+  if (resolved !== expected) {
     throw new Error("problem-history: arquivo de histórico inválido.");
   }
 }
@@ -232,7 +234,7 @@ function relativeOutputDirLabel(outputDir, projectRootResolved) {
 }
 
 /**
- * Anexa uma linha JSON ao arquivo `project/.IA/09-problem-history.jsonl`.
+ * Anexa uma linha JSON a `09-problem-history.jsonl` no iaDir ativo (docs/.IA ou .IA legado).
  * Falhas silenciosas exceto por console.warn (não interrompe o pipeline).
  */
 function appendProblemHistoryEntry(opts = {}) {
@@ -251,7 +253,7 @@ function appendProblemHistoryEntry(opts = {}) {
     }
 
     const projectRoot = path.resolve(projectRootRaw);
-    const iaDir = path.join(projectRoot, IA_DIR);
+    const { iaDir } = resolveProjectIaDir(projectRoot);
     const historyPath = path.join(iaDir, HISTORY_FILE);
 
     assertSafeHistoryPath(projectRoot, historyPath);

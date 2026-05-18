@@ -10,7 +10,7 @@ Mapeamento do fluxo **oficial** hoje (sem DAG). Entrada principal: `scripts/run.
 run.js (CLI: task, project, flags)
   └─ executeRunPipeline → startFlow (lock opcional por projeto)
        ├─ Validação task (shared-utils) — antes do logger
-       ├─ getRunId(taskArg) → outputDir = <project>/.IA/outputs/<runId>/
+       ├─ getRunId(taskArg) → outputDir = <project>/docs/.IA/outputs/<runId>/ (legado: <project>/.IA/outputs/<runId>/)
        ├─ writeRunIndex(.setup-boss/runs/<runId>.json)
        ├─ bootstrapTransactionRuntime
        ├─ Scan cache (fingerprint projeto + TTL) — decide canUseScanCache
@@ -69,7 +69,7 @@ run.js (CLI: task, project, flags)
 
 ## Side effects principais
 
-- Disco em `<projectRoot>/.IA/outputs/<runId>/` (artefactos listados nos checkpoints).
+- Disco em **`<projectRoot>/docs/.IA/outputs/<runId>/`** (legado: **`<projectRoot>/.IA/outputs/<runId>/`**) — artefactos listados nos checkpoints.
 - Projeto alvo: patches quando não é dry-run (`executor`); `ensure-ia` enrich após knowledge aprovado.
 - Cache global scan: `.setup-boss/cache/*` (fingerprint).
 - Índice run: `.setup-boss/runs/<runId>.json`.

@@ -60,6 +60,17 @@ const {
 } = require("./lib/daemon-status");
 
 const {
+  syncOrchestrationFromArtifacts,
+  ORCH_SYNC_INTERVAL_MS,
+} = require("./lib/run-orchestration-sync");
+const { rehydrateRuntimeOnBoot } = require("./lib/run-runtime-rehydration");
+const { reconcileWorkspaceRunsOnBoot } = require("./lib/workspace-run-reconcile");
+const {
+  startWorkspaceRunSyncLoop,
+  stopWorkspaceRunSyncLoop,
+} = require("./lib/workspace-run-sync");
+
+const {
 
 
   emitRuntimeEvent,
@@ -125,6 +136,71 @@ function parseFlags(argv) {
 }
 
 /** @typedef {import("./lib/queue-store")} QS */
+
+/** @param {QS.Job} job */
+function jobIsRunExecute(job) {
+  const meta =
+    job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata)
+      ? job.metadata
+      : {};
+  const kind = String(meta.jobKind || meta.job_kind || "");
+  return kind === "run_execute" || Boolean(meta.executionRunId);
+}
+
+/** @param {import("./lib/queue-store").Job} job */
+function resolveRunIdForExecuteJob(job) {
+  const meta =
+    job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata)
+      ? job.metadata
+      : {};
+  const rid = String(
+    meta.executionRunId || meta.runId || job.runId || "",
+  ).trim();
+  return rid || null;
+}
+
+/** @param {import("./lib/queue-store").Job} job */
+function syncRunExecuteOrchestrationTerminal(job, res, terminalFailed) {
+  if (!jobIsRunExecute(job)) return;
+  const rid = resolveRunIdForExecuteJob(job) || (res && res.runId ? String(res.runId) : null);
+  if (!rid) return;
+  try {
+    syncOrchestrationFromArtifacts(rid, job, {
+      terminal: true,
+      jobExitCode:
+        res && typeof res.code === "number" && Number.isFinite(res.code) ? res.code : null,
+      workerId: null,
+    });
+  } catch (_) {
+    /* */
+  }
+}
+
+/**
+ * Script + argv para worker child (run.js pipeline ou execute.js por runId).
+ * @param {QS.Job} job
+ * @param {string} repoRoot
+ */
+function resolveWorkerChildCommand(job, repoRoot) {
+  if (jobIsRunExecute(job)) {
+    const meta =
+      job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata)
+        ? job.metadata
+        : {};
+    const runId = String(
+      meta.executionRunId || meta.runId || job.runId || "",
+    ).trim();
+    const executeScript = path.join(repoRoot, "scripts", "execute.js");
+    const argv = ["--run", runId];
+    if (meta.executeForce === true) argv.push("--force");
+    return { script: executeScript, argv, label: "execute.js" };
+  }
+  return {
+    script: path.join(repoRoot, "scripts", "run.js"),
+    argv: buildRunJsArgv(job),
+    label: "run.js",
+  };
+}
 
 /** @param {QS.Job} job */
 function buildRunJsArgv(job) {
@@ -469,16 +545,13 @@ function runJobChild(job, repoRoot, daemonPid, rt) {
 
 
 
-  const runScript = path.join(repoRoot, "scripts", "run.js");
-
-
-  const argv = buildRunJsArgv(job);
+  const cmd = resolveWorkerChildCommand(job, repoRoot);
 
 
   appendDaemonLog(
 
 
-    `spawn node scripts/run.js ${argv.map((a) => JSON.stringify(a)).join(" ")}`,
+    `spawn node ${cmd.label} ${cmd.argv.map((a) => JSON.stringify(a)).join(" ")}`,
 
 
   );
@@ -488,7 +561,7 @@ function runJobChild(job, repoRoot, daemonPid, rt) {
   return new Promise((resolve) => {
 
 
-    const child = spawn(process.execPath, [runScript, ...argv], {
+    const child = spawn(process.execPath, [cmd.script, ...cmd.argv], {
 
 
       cwd: repoRoot,
@@ -766,12 +839,47 @@ function killTimerAttach(child, rt, jobId) {
 async function executeJobLifecycle(job, repoRoot, daemonPid, rt, pool, slotIndex) {
   const holder = { pid: daemonPid, jobId: job.id };
 
+  if (jobIsRunExecute(job)) {
+    const ridStart = resolveRunIdForExecuteJob(job);
+    if (ridStart) {
+      try {
+        syncOrchestrationFromArtifacts(ridStart, job, {
+          workerId:
+            typeof rt.workerId === "string" && rt.workerId ? rt.workerId : null,
+        });
+      } catch (_) {
+        /* */
+      }
+    }
+  }
+
   const hb = setInterval(() => {
     heartbeatProjectLock(job.projectRoot, holder);
 
   }, HB_MS);
 
   const jobRecHbMs = Math.max(5000, JOB_RECORD_HB_MS);
+
+  const orchSyncMs = Math.max(4000, ORCH_SYNC_INTERVAL_MS);
+  const runExecuteJob = jobIsRunExecute(job);
+
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let orchHb = null;
+  if (runExecuteJob) {
+    const rid0 = resolveRunIdForExecuteJob(job);
+    if (rid0) {
+      orchHb = setInterval(() => {
+        try {
+          syncOrchestrationFromArtifacts(rid0, job, {
+            workerId:
+              typeof rt.workerId === "string" && rt.workerId ? rt.workerId : null,
+          });
+        } catch (_) {
+          /* */
+        }
+      }, orchSyncMs);
+    }
+  }
 
   const jobHb = setInterval(() => {
     try {
@@ -1039,6 +1147,8 @@ async function executeJobLifecycle(job, repoRoot, daemonPid, rt, pool, slotIndex
 
       }
 
+      syncRunExecuteOrchestrationTerminal(job, res, false);
+
       try {
         const done = peekJobRecord(job.id);
 
@@ -1231,6 +1341,8 @@ async function executeJobLifecycle(job, repoRoot, daemonPid, rt, pool, slotIndex
 
       }
 
+      syncRunExecuteOrchestrationTerminal(job, res, true);
+
 
     }
 
@@ -1241,6 +1353,8 @@ async function executeJobLifecycle(job, repoRoot, daemonPid, rt, pool, slotIndex
     clearInterval(hb);
 
     clearInterval(jobHb);
+
+    if (orchHb != null) clearInterval(orchHb);
 
     stuckAnnounced.delete(job.id);
 
@@ -1522,6 +1636,37 @@ function main() {
   }
 
   try {
+    const rehyd = rehydrateRuntimeOnBoot({ cap: 80, emitEvents: true });
+    appendDaemonLog(
+      `recovery_rehydration scanned=${rehyd.scanned} recovered=${rehyd.recovered} stale=${rehyd.stale} orphaned=${rehyd.orphaned}`,
+    );
+    try {
+      const wsRecon = reconcileWorkspaceRunsOnBoot({ cap: 100 });
+      appendDaemonLog(
+        `workspace_run_recovery scanned=${wsRecon.scanned} reconciled=${wsRecon.reconciled}`,
+      );
+    } catch (wsErr) {
+      appendDaemonLog(
+        `workspace_run_recovery_failed ${String((wsErr && wsErr.message) || wsErr)}`,
+      );
+    }
+  } catch (e) {
+    appendDaemonLog(
+      `recovery_rehydration_failed ${String((e && e.message) || e)}`,
+    );
+    try {
+      emitRuntimeEvent({
+        type: "recovery_failed",
+        jobId: null,
+        runId: null,
+        data: { message: String((e && e.message) || e) },
+      });
+    } catch (_) {
+      /* */
+    }
+  }
+
+  try {
     const mig = migrateQueuePersistProjectIdsIfNeeded();
 
     if (mig && mig.migrated)
@@ -1736,6 +1881,8 @@ function main() {
     }
   }, POLL_MS);
 
+  startWorkspaceRunSyncLoop({ repoRoot });
+
   runtimeApiServer.on("error", (err) => {
     appendDaemonLog(
       `runtime_api_fatal ${String((err && err.message) || err)}`,
@@ -1753,6 +1900,12 @@ function main() {
 
     try {
       clearInterval(schedulerInterval);
+    } catch (_) {
+      /* */
+    }
+
+    try {
+      stopWorkspaceRunSyncLoop();
     } catch (_) {
       /* */
     }

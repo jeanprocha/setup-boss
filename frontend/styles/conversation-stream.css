@@ -1,0 +1,316 @@
+/* Operational conversation stream — coluna central */
+
+.cs-central-column {
+  /* Coluna central — tom ligeiramente mais escuro que a shell (#f1f3f4) */
+  --cs-bg: #e2e6ea;
+  --cs-fg: var(--foreground);
+  --cs-fg-muted: color-mix(in oklch, var(--cs-fg) 68%, transparent);
+  --cs-border: color-mix(in oklch, var(--cs-fg) 14%, transparent);
+  --cs-hover: color-mix(in oklch, var(--cs-fg) 6%, var(--cs-bg));
+  --cs-nested-border: color-mix(in oklch, var(--cs-fg) 14%, transparent);
+  --cs-inline-code-bg: color-mix(in oklch, var(--cs-fg) 5%, var(--cs-bg));
+
+  background: var(--cs-bg);
+  color: var(--cs-fg);
+  font-family: inherit;
+  --cs-font-entry-title: 18px;
+  --cs-font-subtitle: 14px;
+  --cs-font-body: 14px;
+  --cs-font-caption: 12px;
+  --cs-indent-nested: 1rem;
+  --cs-indent-deep: 1.75rem;
+}
+
+.dark .cs-central-column {
+  /* Coluna central — tom ligeiramente mais escuro que a shell (#202124) */
+  --cs-bg: #181a1b;
+  --cs-fg: var(--foreground);
+  --cs-fg-muted: var(--muted-foreground);
+  --cs-border: var(--border);
+  --cs-hover: color-mix(in srgb, var(--foreground) 8%, var(--cs-bg));
+  --cs-nested-border: color-mix(in srgb, var(--foreground) 20%, transparent);
+  --cs-inline-code-bg: color-mix(in srgb, var(--foreground) 7%, var(--cs-bg));
+}
+
+@layer components {
+  .cs-fg {
+    color: var(--cs-fg);
+  }
+
+  .cs-fg-muted {
+    color: var(--cs-fg-muted);
+  }
+
+  .cs-bg {
+    background-color: var(--cs-bg);
+  }
+
+  .cs-border {
+    border-color: var(--cs-border);
+  }
+
+  .cs-interactive {
+    color: var(--cs-fg);
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .cs-interactive:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--cs-hover);
+    color: var(--cs-fg);
+  }
+
+  .cs-inline-code {
+    border-radius: 0.25rem;
+    border: 1px solid var(--cs-border);
+    background-color: var(--cs-inline-code-bg);
+    padding: 0.125rem 0.25rem;
+    color: var(--cs-fg);
+  }
+
+  /* Título principal do bloco — 18px bold */
+  .cs-entry-title {
+    font-size: var(--cs-font-entry-title) !important;
+    font-weight: 700 !important;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--cs-fg);
+  }
+
+  .cs-central-column h2.cs-entry-title {
+    font-size: var(--cs-font-entry-title) !important;
+    font-weight: 700 !important;
+  }
+
+  .cs-entry-header-leading {
+    width: 1.125rem;
+    height: calc(var(--cs-font-entry-title) * 1.3);
+    flex-shrink: 0;
+    color: var(--cs-fg);
+  }
+
+  .cs-entry-header-leading svg {
+    display: block;
+  }
+
+  .cs-text-subtitle {
+    font-size: var(--cs-font-subtitle);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--cs-fg);
+  }
+
+  .cs-text-body {
+    font-size: var(--cs-font-body);
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--cs-fg);
+  }
+
+  .cs-text-lead {
+    font-size: var(--cs-font-body);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--cs-fg);
+  }
+
+  .cs-text-caption {
+    font-size: var(--cs-font-caption);
+    font-weight: 400;
+    line-height: 1.45;
+    color: var(--cs-fg);
+  }
+
+  .cs-text-comment {
+    font-weight: 400;
+    color: var(--cs-fg-muted);
+  }
+
+  .cs-text-title {
+    font-size: var(--cs-font-subtitle);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--cs-fg);
+  }
+
+  .cs-entry-metadata {
+    line-height: 1.45;
+    padding-left: 0.125rem;
+    font-weight: 400;
+  }
+
+  .cs-entry {
+    position: relative;
+    scroll-margin-top: 1.25rem;
+    isolation: isolate;
+    border-bottom: 1px solid var(--cs-border);
+    background-color: var(--cs-bg);
+    padding-block: 1.375rem;
+  }
+
+  .cs-entry:last-child {
+    border-bottom-width: 0;
+  }
+
+  .cs-entry-nested {
+    margin-top: 0.375rem;
+    padding-left: var(--cs-indent-nested);
+    border-left: 2px solid var(--cs-nested-border);
+  }
+
+  .cs-entry-nested-body {
+    padding-left: 0.625rem;
+  }
+
+  .cs-entry-nested-deep {
+    padding-left: var(--cs-indent-deep);
+  }
+
+  /* Conteúdo embutido (clarificação, strategy, intake) — plano como o bloco stream */
+  .cs-central-column .cs-entry-nested > section,
+  .cs-central-column .cs-entry-nested > div > section {
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .cs-central-column .cs-entry-nested > section > header,
+  .cs-central-column .cs-entry-nested > div > section > header {
+    border-bottom-color: var(--cs-border) !important;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .cs-central-column .cs-entry-nested :is(.rounded-lg, .rounded-md).border {
+    border-color: var(--cs-border) !important;
+    background: color-mix(in oklch, var(--cs-fg) 4%, var(--cs-bg)) !important;
+  }
+
+  .cs-central-column .cs-intake-field {
+    border-color: var(--cs-border);
+    background: color-mix(in oklch, var(--cs-fg) 4%, var(--cs-bg));
+    color: var(--cs-fg);
+  }
+
+  .cs-central-column .cs-intake-field::placeholder {
+    color: color-mix(in oklch, var(--cs-fg) 42%, transparent);
+  }
+
+  .dark .cs-central-column .cs-entry-nested :is(.rounded-lg, .rounded-md).border {
+    background: color-mix(in oklch, var(--cs-fg) 5%, var(--cs-bg)) !important;
+  }
+
+  .cs-central-column .cs-entry-body :where([class*="border-b"], [class*="border-t"]) {
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+  }
+
+  .cs-central-column .cs-entry-body hr {
+    display: none;
+  }
+
+  .cs-central-column .cs-entry-body .divide-y > :not([hidden]) ~ :not([hidden]) {
+    border-top-width: 0;
+  }
+
+  .cs-central-column :where(
+    .text-muted-foreground,
+    [class*="text-muted-foreground"]
+  ) {
+    color: var(--cs-fg-muted) !important;
+  }
+
+  .cs-central-column :where(
+    [class*="text-foreground/"],
+    .text-foreground\/78,
+    .text-foreground\/82,
+    .text-foreground\/86,
+    .text-foreground\/88,
+    .text-foreground\/90,
+    .text-foreground\/92,
+    .text-foreground\/95
+  ) {
+    color: var(--cs-fg) !important;
+  }
+
+  .cs-markdown :where(pre) {
+    margin: 0;
+  }
+
+  .cs-central-column .cs-markdown :where(p, li, td, strong, blockquote) {
+    color: var(--cs-fg);
+    font-weight: 400;
+  }
+
+  .cs-central-column .cs-markdown :where(h1, h2, h3) {
+    color: var(--cs-fg);
+    font-weight: 600;
+  }
+
+  .cs-central-column .cs-markdown :where(blockquote) {
+    border-left-color: var(--cs-border);
+  }
+
+  .cs-central-column .cs-markdown :where(hr) {
+    border-color: var(--cs-border);
+  }
+
+  .cs-table-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cs-table .cs-table-row:nth-child(even) {
+    background: var(--cs-bg);
+  }
+
+  .cs-code-block pre {
+    tab-size: 2;
+  }
+
+  .cs-central-column :is(
+    button,
+    a[href],
+    summary,
+    [role="button"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
+    label[for]
+  ) {
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      opacity 150ms ease;
+  }
+
+  .cs-central-column button:disabled,
+  .cs-central-column [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  .cs-central-column a[href]:hover {
+    text-decoration: underline;
+  }
+
+  .cs-expand-fade {
+    background: linear-gradient(to top, var(--cs-bg), transparent);
+  }
+}
+
+@keyframes sb-activity-row-shimmer {
+  0% {
+    filter: brightness(1);
+  }
+  45% {
+    filter: brightness(1.06);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
